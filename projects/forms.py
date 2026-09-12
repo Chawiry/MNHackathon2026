@@ -1,10 +1,9 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
-from skills.models import SkillProficiency
 from teams.models import Team
 
-from .models import Project, ProjectSkillRequirement
+from .models import Project
 
 User = get_user_model()
 
@@ -54,13 +53,3 @@ class AddTeamForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["manager"].label_from_instance = _user_label
-
-
-class AddRequirementForm(forms.ModelForm):
-    class Meta:
-        model = ProjectSkillRequirement
-        fields = ("skill", "required_level", "importance", "people_needed")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["required_level"].choices = SkillProficiency.Level.choices

@@ -2,15 +2,11 @@ from collections import defaultdict
 
 from skills.models import SkillProficiency
 
-from .models import Project, ProjectSkillRequirement
-
 
 def team_coverage(team):
-    """Project requirements resolved against a team's approved skills."""
+    """A team's requirements resolved against its members' approved skills."""
     member_ids = set(team.memberships.values_list("user_id", flat=True))
-    requirements = ProjectSkillRequirement.objects.filter(
-        project__status__in=[Project.Status.ACTIVE, Project.Status.PLANNED]
-    ).select_related("project", "skill").order_by("-importance", "project__name")
+    requirements = team.skill_requirements.select_related("skill")
 
     levels_by_skill = defaultdict(list)
     for skill_id, level in (
@@ -36,8 +32,6 @@ def team_coverage(team):
             status = "Partial"
         rows.append(
             {
-                "project": req.project.name,
-                "status": req.project.status,
                 "skill": req.skill.name,
                 "required_level": req.get_required_level_display(),
                 "importance": req.get_importance_display(),

@@ -1,6 +1,8 @@
 from django import forms
 
-from teams.models import Team, TeamMembership
+from skills.models import SkillProficiency
+
+from teams.models import Team, TeamMembership, TeamSkillRequirement
 
 
 class AddMemberForm(forms.ModelForm):
@@ -22,3 +24,13 @@ class ChangeRoleForm(forms.ModelForm):
     class Meta:
         model = TeamMembership
         fields = ("role",)
+
+
+class AddRequirementForm(forms.ModelForm):
+    class Meta:
+        model = TeamSkillRequirement
+        fields = ("skill", "required_level", "importance", "people_needed")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["required_level"].choices = SkillProficiency.Level.choices

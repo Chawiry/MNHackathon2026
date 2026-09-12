@@ -82,41 +82,14 @@
                   </tbody>
                 </table>
               {% else %}
-                <p class="text-sm text-slate-500 mt-2">No active/planned requirements to compare against.</p>
+                <p class="text-sm text-slate-500 mt-2">No requirements for this team yet.</p>
               {% endif %}
+
+              {% include "teams/_requirements.html" with team=entry.team requirements=entry.team.skill_requirements.all add_requirement_form=add_requirement_form %}
             </div>
           {% endfor %}
         {% else %}
           <p class="text-slate-600">This project has no teams yet.</p>
-        {% endif %}
-      </div>
-
-      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-        <h2 class="font-semibold mb-3">Skill requirements</h2>
-        {% if requirements %}
-          <ul class="divide-y divide-slate-100">
-            {% for req in requirements %}
-              <li class="py-2 flex items-center justify-between gap-3">
-                <div class="text-sm">
-                  <span class="font-medium">{{ req.skill.name }}</span>
-                  <span class="text-slate-600"> · {{ req.get_required_level_display }}</span>
-                  {% if req.people_needed %}<span class="text-slate-600"> · {{ req.people_needed }} needed</span>{% endif %}
-                  <span class="ml-1 text-xs px-2 py-0.5 rounded-full
-                    {% if req.importance == 'critical' %}bg-red-100 text-red-700
-                    {% elif req.importance == 'important' %}bg-amber-100 text-amber-700
-                    {% else %}bg-slate-100 text-slate-600{% endif %}">
-                    {{ req.get_importance_display }}
-                  </span>
-                </div>
-                <form method="post" action="{% url 'remove_requirement' req.pk %}">
-                  {% csrf_token %}
-                  <button type="submit" class="text-xs text-red-600 hover:underline">Remove</button>
-                </form>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="text-sm text-slate-500">No requirements yet.</p>
         {% endif %}
       </div>
     </section>
@@ -128,15 +101,6 @@
           {% csrf_token %}
           {{ add_team_form.as_div }}
           <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Add team</button>
-        </form>
-      </div>
-
-      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-        <h2 class="font-semibold mb-3">Add a requirement</h2>
-        <form method="post" action="{% url 'add_requirement' project.pk %}" class="space-y-3">
-          {% csrf_token %}
-          {{ add_requirement_form.as_div }}
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Add requirement</button>
         </form>
       </div>
     </aside>

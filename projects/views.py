@@ -5,10 +5,11 @@ from django.urls import reverse
 
 from accounts.tiers import require_tier
 from teams.models import Team, TeamMembership
+from teams.services import team_coverage
 
-from .forms import AddRequirementForm, AddTeamForm, ProjectCreateForm
-from .models import Project, ProjectSkillRequirement
-from .services import team_coverage
+from .forms import AddTeamForm, ProjectCreateForm
+from teams.forms import AddRequirementForm
+from .models import Project
 
 
 def _coverage_summary(project):
@@ -54,7 +55,6 @@ def project_detail(request, pk):
         {
             "project": project,
             "teams": teams,
-            "requirements": project.skill_requirements.select_related("skill"),
             "add_team_form": AddTeamForm(),
             "add_requirement_form": AddRequirementForm(),
         },
@@ -107,18 +107,6 @@ def add_team(request, pk):
 
 
 @require_tier("leadership")
-def add_requirement(request, pk):
-    project = get_object_or_404(Project, pk=pk)
-    form = AddRequirementForm(request.POST)
-    if form.is_valid():
-        ProjectSkillRequirement.objects.create(project=project, **form.cleaned_data)
-        messages.success(request, "Skill requirement added.")
-    else:
-        messages.error(request, form.errors)
-    return redirect(reverse("project_detail", args=[project.pk]))
-
-
-@require_tier("leadership")
 def remove_team(request, pk):
     team = get_object_or_404(Team, pk=pk)
     project = team.project
@@ -127,12 +115,3 @@ def remove_team(request, pk):
     if project:
         return redirect(reverse("project_detail", args=[project.pk]))
     return redirect(reverse("project_list"))
-
-
-@require_tier("leadership")
-def remove_requirement(request, pk):
-    req = get_object_or_404(ProjectSkillRequirement, pk=pk)
-    project = req.project
-    req.delete()
-    messages.success(request, "Skill requirement removed.")
-    return redirect(reverse("project_detail", args=[project.pk]))

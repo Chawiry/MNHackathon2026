@@ -5,9 +5,9 @@ Models implemented across four Django apps. Features build against these.
 ## Apps
 
 - **`accounts`** — `User` (custom, `AbstractUser`)
-- **`teams`** — `Team`, `TeamMembership`
+- **`teams`** — `Team`, `TeamMembership`, `TeamSkillRequirement`
 - **`skills`** — `SkillCategory`, `Skill`, `SkillProficiency`, `Certificate`, `CertificateAward`
-- **`projects`** — `Project`, `ProjectSkillRequirement`
+- **`projects`** — `Project`
 
 ## Key decisions
 
@@ -23,7 +23,11 @@ Models implemented across four Django apps. Features build against these.
   first **Team** and assigns the chosen **team manager** (a `TeamMembership` with `role=manager`).
   A project can hold one or more teams; team names are unique per project
   (`unique_project_team_name`). Team managers only manage teams they are part of.
-- **Critical skills**: derived, not stored — from `ProjectSkillRequirement` on **active**
+- **Requirements are per-team**: each team owns its own **skill requirements**
+  (`TeamSkillRequirement`; unique per `team × skill`). New teams start with none; team managers
+  edit their own team's requirements and leadership can edit any team's. Coverage is computed
+  against that team's own requirements only.
+- **Critical skills**: derived, not stored — from `TeamSkillRequirement` on teams for active
   projects where `importance = critical`, combined with coverage/concentration computed over
   approved `SkillProficiency` rows.
 
@@ -33,7 +37,7 @@ Models implemented across four Django apps. Features build against these.
 User ──< TeamMembership >── Team >── Project
 User ──< SkillProficiency >── Skill ──> SkillCategory
 User ──< CertificateAward >── Certificate
-Project ──< ProjectSkillRequirement >── Skill
+Team ──< TeamSkillRequirement >── Skill
 ```
 
 ## Analytic queries (no extra tables needed)

@@ -1,14 +1,32 @@
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
+from accounts.models import Tier
 from accounts.tiers import manages_team, require_tier
-from projects.services import team_coverage
 from skills.forms import RecordCertificateForm, RecordSkillForm
-from teams.models import Team, TeamMembership
+from .services import team_coverage
 
-from .forms import AddMemberForm, ChangeRoleForm
+from teams.models import Team, TeamMembership, TeamSkillRequirement
+
+from .forms import AddMemberForm, AddRequirementForm, ChangeRoleForm
+
+
+def _can_edit_requirements(request, team):
+    if request.user.tier == Tier.LEADERSHIP:
+        return
+    if manages_team(request.user, team):
+        return
+    raise PermissionDenied
+
+
+def _safe_return(request):
+    next_url = request.POST.get("next")
+    if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+        return next_url
+    return reverse("team_list")
 
 
 @require_tier("team_manager")
@@ -30,12 +48,14 @@ def team_list(request):
                 "team": team,
                 "roster": roster,
                 "coverage_rows": coverage[team.id],
+                "requirements": team.skill_requirements.select_related("skill"),
             }
         )
 
     context = {
         "teams": teams_data,
         "add_member_form": AddMemberForm(manager=request.user),
+        "add_requirement_form": AddRequirementForm(),
         "record_skill_form": RecordSkillForm(),
         "record_certificate_form": RecordCertificateForm(),
         "profile": request.user,
@@ -91,3 +111,25 @@ def remove_member(request, pk):
     membership.delete()
     messages.success(request, f"Removed {user.username} from {membership.team}.")
     return redirect(reverse("team_list"))
+
+
+@require_tier("team_manager", "leadership")
+def add_requirement(request, pk):
+    team = get_object_or_404(Team, pk=pk)
+    _can_edit_requirements(request, team)
+    form = AddRequirementForm(request.POST)
+    if form.is_valid():
+        TeamSkillRequirement.objects.create(team=team, **form.cleaned_data)
+        messages.success(request, "Skill requirement added.")
+    else:
+        messages.error(request, form.errors)
+    return redirect(_safe_return(request))
+
+
+@require_tier("team_manager", "leadership")
+def remove_requirement(request, pk):
+    req = get_object_or_404(TeamSkillRequirement, pk=pk)
+    _can_edit_requirements(request, req.team)
+    req.delete()
+    messages.success(request, "Skill requirement removed.")
+    return redirect(_safe_return(request))
