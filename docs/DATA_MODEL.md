@@ -1,33 +1,44 @@
-# Agreed domain model (direction for future milestones, not yet implemented)
+# Domain data model (implemented)
 
-These are the intended models agreed with the team. Features build against this
-shape so later milestones stay consistent.
+Models implemented across four Django apps. Features build against these.
 
-## Entities
+## Apps
 
-- **User** — Django's built-in auth user. Roles modeled with Django groups
-  (`admin`, `manager`, `member`).
-- **Team** — an org unit (the thing a "team skill management solution" manages).
-  Has a name, optional description, and a roster of members.
-- **Skill** — a named, catalogable capability (e.g. "Python", "Public speaking").
-  Belongs to a **Category**/domain (e.g. "Backend", "Soft skills").
-- **Proficiency** — the core measurement: links a `User` to a `Skill` with a
-  `level` (e.g. 1–5), optional `evidence` text, an `updated_at` timestamp, and
-  optionally the `User` who recorded it (self-reported vs peer).
-- **TeamMembership** — join table for `User` ↔ `Team` with an optional `role`
-  within that team.
+- **`accounts`** — `User` (custom, `AbstractUser`)
+- **`teams`** — `Team`, `TeamMembership`
+- **`skills`** — `SkillCategory`, `Skill`, `SkillProficiency`, `Certificate`, `CertificateAward`
+- **`projects`** — `Project`, `ProjectSkillRequirement`
 
-## Suggested relationships
+## Key decisions
+
+- **User tiers**: `employee`, `team_manager`, `leadership` (field on `User`). Roles gate what each tier can see/do.
+- **Proficiency scale**: 1–5 (`novice … expert`), shared `SkillProficiency.Level` choices.
+- **Approval workflow**: each `User × Skill` is a single `SkillProficiency` row with a `status`
+  (`pending` / `approved` / `rejected`). Manager recordings start approved; employee
+  self-reports start pending until a manager approves. Only `approved` rows feed analytics.
+- **Multi-team**: users join teams via `TeamMembership` (a manager role is a membership role).
+- **Critical skills**: derived, not stored — from `ProjectSkillRequirement` on **active**
+  projects where `importance = critical`, combined with coverage/concentration computed over
+  approved `SkillProficiency` rows.
+
+## Relationships
 
 ```
-Team ──< TeamMembership >── User ──< Proficiency >── Skill
-                                                  │
-                                                  └──> Category
+User ──< TeamMembership >── Team
+User ──< SkillProficiency >── Skill ──> SkillCategory
+User ──< CertificateAward >── Certificate
+Project ──< ProjectSkillRequirement >── Skill
 ```
 
-## Deliberately deferred
+## Analytic queries (no extra tables needed)
 
-- CSV import/export
-- Skill-gap reporting / heatmaps
-- Multi-tenancy beyond a single org
-- Audit trail / change history
+- Coverage / gaps: compare the max or avg required level per active project vs the best
+  approved level per skill across the org/team.
+- Concentration / succession risk: count of approved holders per skill (few holders =
+  high concentration), optionally broken down by role/team.
+- Pending review queue: `SkillProficiency.objects.filter(status="pending")`.
+
+## Seeded data
+
+`skills/fixtures/starter_skills.json` — 5 categories, 16 skills. Load with
+`python manage.py loaddata starter_skills` (already applied to dev DB).

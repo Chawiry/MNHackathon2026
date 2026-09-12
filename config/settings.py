@@ -34,7 +34,13 @@ SECRET_KEY = os.environ.get(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() in {"1", "true", "yes"}
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if os.environ.get("DJANGO_ALLOWED_HOSTS") else []
+# In dev allow any host (avoids 400 DisallowedHost when hitting a LAN IP or
+# hostname). In production, restrict via DJANGO_ALLOWED_HOSTS.
+ALLOWED_HOSTS = (
+    ["*"]
+    if DEBUG
+    else os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",")
+)
 
 
 # Application definition
@@ -46,6 +52,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "accounts",
+    "teams",
+    "skills",
+    "projects",
     "core",
 ]
 
@@ -76,7 +86,10 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
+WSGI_APPLICATION = "config.wsgi.application"
+
+# Custom user model (defined in the accounts app)
+AUTH_USER_MODEL = "accounts.User"
 
 
 # Database
