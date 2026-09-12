@@ -3,10 +3,24 @@ from django.db import models
 
 
 class Team(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
+    project = models.ForeignKey(
+        "projects.Project",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="teams",
+        help_text="The project this team works on. Teams are spawned by projects.",
+    )
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "name"],
+                name="unique_project_team_name",
+            )
+        ]
         ordering = ["name"]
 
     def __str__(self):

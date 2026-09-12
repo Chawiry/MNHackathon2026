@@ -3,13 +3,6 @@ from django import forms
 from teams.models import Team, TeamMembership
 
 
-class TeamCreateForm(forms.ModelForm):
-    class Meta:
-        model = Team
-        fields = ("name", "description")
-        widgets = {"description": forms.Textarea(attrs={"rows": 2})}
-
-
 class AddMemberForm(forms.ModelForm):
     class Meta:
         model = TeamMembership

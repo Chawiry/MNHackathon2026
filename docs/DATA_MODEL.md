@@ -19,6 +19,10 @@ Models implemented across four Django apps. Features build against these.
   `CertificateAward` follows the same `status` + `approved_by` pattern (self-submitted
   certificates are pending until a manager approves).
 - **Multi-team**: users join teams via `TeamMembership` (a manager role is a membership role).
+- **Projects spawn teams**: leadership creates a **Project**, which auto-spawns the project's
+  first **Team** and assigns the chosen **team manager** (a `TeamMembership` with `role=manager`).
+  A project can hold one or more teams; team names are unique per project
+  (`unique_project_team_name`). Team managers only manage teams they are part of.
 - **Critical skills**: derived, not stored — from `ProjectSkillRequirement` on **active**
   projects where `importance = critical`, combined with coverage/concentration computed over
   approved `SkillProficiency` rows.
@@ -26,7 +30,7 @@ Models implemented across four Django apps. Features build against these.
 ## Relationships
 
 ```
-User ──< TeamMembership >── Team
+User ──< TeamMembership >── Team >── Project
 User ──< SkillProficiency >── Skill ──> SkillCategory
 User ──< CertificateAward >── Certificate
 Project ──< ProjectSkillRequirement >── Skill

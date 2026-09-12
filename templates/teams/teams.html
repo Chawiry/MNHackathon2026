@@ -89,20 +89,11 @@
           </div>
         {% endfor %}
       {% else %}
-        <p class="text-slate-600">You don't manage any teams yet. Create one on the right.</p>
+        <p class="text-slate-600">You're not managing any teams yet. Leadership creates project teams; once added as a team manager, you'll curate that team here.</p>
       {% endif %}
     </section>
 
     <aside class="space-y-6">
-      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-        <h2 class="font-semibold mb-3">Create a team</h2>
-        <form method="post" action="{% url 'create_team' %}" class="space-y-3">
-          {% csrf_token %}
-          {{ team_create_form.as_div }}
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Create team</button>
-        </form>
-      </div>
-
       {% if teams %}
       <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
         <h2 class="font-semibold mb-3">Add a member</h2>
