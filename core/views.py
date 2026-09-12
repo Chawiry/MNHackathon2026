@@ -1,14 +1,17 @@
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 
 from accounts.forms import SignupForm
+from accounts.models import Tier
 
 
 @login_required
 def home(request):
-    return render(request, "core/home.html")
+    if request.user.tier == Tier.TEAM_MANAGER:
+        return redirect(reverse("team_list"))
+    return redirect(reverse("my_skills"))
 
 
 def register(request):

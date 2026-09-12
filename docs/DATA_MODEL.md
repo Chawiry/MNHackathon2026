@@ -16,6 +16,8 @@ Models implemented across four Django apps. Features build against these.
 - **Approval workflow**: each `User × Skill` is a single `SkillProficiency` row with a `status`
   (`pending` / `approved` / `rejected`). Manager recordings start approved; employee
   self-reports start pending until a manager approves. Only `approved` rows feed analytics.
+  `CertificateAward` follows the same `status` + `approved_by` pattern (self-submitted
+  certificates are pending until a manager approves).
 - **Multi-team**: users join teams via `TeamMembership` (a manager role is a membership role).
 - **Critical skills**: derived, not stored — from `ProjectSkillRequirement` on **active**
   projects where `importance = critical`, combined with coverage/concentration computed over

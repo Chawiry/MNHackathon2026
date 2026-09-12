@@ -113,6 +113,11 @@ class Certificate(models.Model):
 
 
 class CertificateAward(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -126,12 +131,24 @@ class CertificateAward(models.Model):
     obtained_on = models.DateField()
     expires_on = models.DateField(null=True, blank=True)
     credential_url = models.URLField(blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
     recorded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="recorded_certificate_awards",
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_certificate_awards",
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

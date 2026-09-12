@@ -15,6 +15,10 @@
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
       <a href="{% url 'home' %}" class="font-semibold text-slate-800">Team Skills</a>
       <div class="flex items-center gap-4 text-sm">
+        <a href="{% url 'my_skills' %}" class="text-slate-600 hover:text-slate-900">My Skills</a>
+        {% if user.tier == 'team_manager' %}
+          <a href="{% url 'team_list' %}" class="text-slate-600 hover:text-slate-900">Teams</a>
+        {% endif %}
         <span class="text-slate-600">{{ user.username }}</span>
         <form method="post" action="{% url 'logout' %}">
           {% csrf_token %}

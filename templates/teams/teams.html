@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Teams · Team Skills{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl font-semibold mb-6">Team management</h1>
+
+  <div class="grid lg:grid-cols-3 gap-6">
+    <section class="lg:col-span-2 space-y-6">
+      {% if teams %}
+        {% for entry in teams %}
+          <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+            <h2 class="font-semibold text-lg">{{ entry.team.name }}</h2>
+            {% if entry.team.description %}<p class="text-sm text-slate-600 mt-0.5">{{ entry.team.description }}</p>{% endif %}
+
+            <h3 class="mt-4 text-sm font-semibold text-slate-700">Roster</h3>
+            <ul class="mt-2 divide-y divide-slate-100">
+              {% for membership in entry.roster %}
+                <li class="py-2 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm">{{ membership.user.username }}</span>
+                    {% if membership.role == 'manager' %}
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">manager</span>
+                    {% else %}
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">member</span>
+                    {% endif %}
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <form method="post" action="{% url 'change_role' membership.pk %}" class="flex items-center gap-1">
+                      {% csrf_token %}
+                      <select name="role" class="text-sm border border-slate-300 rounded px-1 py-0.5">
+                        <option value="manager" {% if membership.role == 'manager' %}selected{% endif %}>Manager</option>
+                        <option value="member" {% if membership.role == 'member' %}selected{% endif %}>Member</option>
+                      </select>
+                      <button type="submit" class="text-xs text-blue-600 hover:underline">Set</button>
+                    </form>
+                    <form method="post" action="{% url 'remove_member' membership.pk %}"
+                          onsubmit="return confirm('Remove {{ membership.user.username }} from {{ entry.team.name }}?');">
+                      {% csrf_token %}
+                      <button type="submit" class="text-xs text-red-600 hover:underline">Remove</button>
+                    </form>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+
+            <h3 class="mt-4 text-sm font-semibold text-slate-700">Skill coverage vs project requirements</h3>
+            {% if entry.coverage_rows %}
+              <table class="mt-2 w-full text-sm">
+                <thead>
+                  <tr class="text-left text-slate-500 border-b border-slate-200">
+                    <th class="py-1 pr-3">Project</th>
+                    <th class="py-1 pr-3">Skill</th>
+                    <th class="py-1 pr-3">Required</th>
+                    <th class="py-1 pr-3">Met</th>
+                    <th class="py-1 pr-3">Max</th>
+                    <th class="py-1 pr-3">Importance</th>
+                    <th class="py-1">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in entry.coverage_rows %}
+                    <tr class="border-b border-slate-100">
+                      <td class="py-1.5 pr-3">{{ row.project }}</td>
+                      <td class="py-1.5 pr-3">{{ row.skill }}</td>
+                      <td class="py-1.5 pr-3">{{ row.required_level }}</td>
+                      <td class="py-1.5 pr-3">{{ row.count_met }}{% if row.people_needed %}/{{ row.people_needed }}{% endif %}</td>
+                      <td class="py-1.5 pr-3">{{ row.max_level }}</td>
+                      <td class="py-1.5 pr-3">
+                        {% if row.importance == 'Critical' %}<span class="text-red-700">{{ row.importance }}</span>
+                        {% else %}<span class="text-slate-600">{{ row.importance }}</span>{% endif %}
+                      </td>
+                      <td class="py-1.5">
+                        {% if row.coverage_status == 'Met' %}
+                          <span class="text-green-700">Met</span>
+                        {% elif row.coverage_status == 'Partial' %}
+                          <span class="text-amber-700">Partial</span>
+                        {% else %}
+                          <span class="text-red-700">Gap</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="text-sm text-slate-500 mt-2">No active/planned project requirements.</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-slate-600">You don't manage any teams yet. Create one on the right.</p>
+      {% endif %}
+    </section>
+
+    <aside class="space-y-6">
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-semibold mb-3">Create a team</h2>
+        <form method="post" action="{% url 'create_team' %}" class="space-y-3">
+          {% csrf_token %}
+          {{ team_create_form.as_div }}
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Create team</button>
+        </form>
+      </div>
+
+      {% if teams %}
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-semibold mb-3">Add a member</h2>
+        <form method="post" action="{% url 'add_member' %}" class="space-y-3">
+          {% csrf_token %}
+          {{ add_member_form.as_div }}
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Add member</button>
+        </form>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-semibold mb-3">Record a skill</h2>
+        <form method="post" action="{% url 'record_skill' %}" class="space-y-3">
+          {% csrf_token %}
+          {{ record_skill_form.as_div }}
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Record (auto-approved)</button>
+        </form>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-semibold mb-3">Record a certificate</h2>
+        <form method="post" action="{% url 'record_certificate' %}" class="space-y-3">
+          {% csrf_token %}
+          {{ record_certificate_form.as_div }}
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Record (auto-approved)</button>
+        </form>
+      </div>
+      {% endif %}
+    </aside>
+  </div>
+
+  <section class="mt-8">
+    <h2 class="text-xl font-semibold mb-4">Pending approvals</h2>
+    <div class="grid lg:grid-cols-2 gap-6">
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h3 class="font-semibold mb-3">Skill submissions</h3>
+        {% if pending_skills %}
+          <ul class="divide-y divide-slate-100">
+            {% for prof in pending_skills %}
+              <li class="py-3 flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-sm font-medium">{{ prof.skill.name }} — {{ prof.get_level_display }}</p>
+                  <p class="text-xs text-slate-600">{{ prof.user.username }} {{ prof.user.job_title }}</p>
+                  {% if prof.evidence %}<p class="text-xs text-slate-500">{{ prof.evidence }}</p>{% endif %}
+                </div>
+                <div class="flex gap-2 shrink-0">
+                  <form method="post" action="{% url 'approve_proficiency' prof.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="text-xs bg-green-600 hover:bg-green-700 text-white rounded px-3 py-1">Approve</button>
+                  </form>
+                  <form method="post" action="{% url 'reject_proficiency' prof.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="text-xs bg-red-600 hover:bg-red-700 text-white rounded px-3 py-1">Reject</button>
+                  </form>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-sm text-slate-500">Nothing pending.</p>
+        {% endif %}
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h3 class="font-semibold mb-3">Certificate submissions</h3>
+        {% if pending_certificates %}
+          <ul class="divide-y divide-slate-100">
+            {% for cert in pending_certificates %}
+              <li class="py-3 flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-sm font-medium">{{ cert.certificate.name }}{% if cert.certificate.issuer %} ({{ cert.certificate.issuer }}){% endif %}</p>
+                  <p class="text-xs text-slate-600">{{ cert.user.username }} · obtained {{ cert.obtained_on|date:"M Y" }}</p>
+                  {% if cert.credential_url %}<p class="text-xs text-blue-600">{{ cert.credential_url }}</p>{% endif %}
+                </div>
+                <div class="flex gap-2 shrink-0">
+                  <form method="post" action="{% url 'approve_certificate' cert.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="text-xs bg-green-600 hover:bg-green-700 text-white rounded px-3 py-1">Approve</button>
+                  </form>
+                  <form method="post" action="{% url 'reject_certificate' cert.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="text-xs bg-red-600 hover:bg-red-700 text-white rounded px-3 py-1">Reject</button>
+                  </form>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-sm text-slate-500">Nothing pending.</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+{% endblock %}
