@@ -18,6 +18,14 @@ Models implemented across four Django apps. Features build against these.
   self-reports start pending until a manager approves. Only `approved` rows feed analytics.
   `CertificateAward` follows the same `status` + `approved_by` pattern (self-submitted
   certificates are pending until a manager approves).
+- **Certificates back skills**: each `CertificateAward` records the `skill` it confirms and the
+  `level` it implies. Approving an award upserts that `User × Skill` `SkillProficiency` row as
+  approved (certificate wins over an existing self-report, but `reported_by` stays the owner so
+  they can self-assess again later). Rejects never touch proficiencies. `expires_on` is collected
+  and shown as an **expired** flag only — it does not downgrade coverage.
+- **Provisioned accounts (no self-service)**: there is no public signup. Leadership creates
+  accounts and assigns any tier on `/users/`; team managers create employee accounts that are
+  added to a team they manage in one step. Re-tiers and deactivations are leadership-only.
 - **Multi-team**: users join teams via `TeamMembership` (a manager role is a membership role).
 - **Projects spawn teams**: leadership creates a **Project**, which auto-spawns the project's
   first **Team** and assigns the chosen **team manager** (a `TeamMembership` with `role=manager`).
@@ -36,7 +44,7 @@ Models implemented across four Django apps. Features build against these.
 ```
 User ──< TeamMembership >── Team >── Project
 User ──< SkillProficiency >── Skill ──> SkillCategory
-User ──< CertificateAward >── Certificate
+User ──< CertificateAward >(skill)── Skill
 Team ──< TeamSkillRequirement >── Skill
 ```
 

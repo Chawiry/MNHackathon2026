@@ -53,7 +53,10 @@
             <li class="py-3 flex items-center justify-between gap-3">
               <div>
                 <p class="text-sm font-medium">{{ cert.certificate.name }}{% if cert.certificate.issuer %} ({{ cert.certificate.issuer }}){% endif %}</p>
-                <p class="text-xs text-slate-600">{{ cert.user.username }} · obtained {{ cert.obtained_on|date:"M Y" }}</p>
+                <p class="text-xs text-slate-600">
+                  {{ cert.user.username }} · confirms {{ cert.skill.name }} at {{ cert.get_level_display }}
+                  · obtained {{ cert.obtained_on|date:"M Y" }}
+                </p>
                 {% if cert.credential_url %}<p class="text-xs text-blue-600">{{ cert.credential_url }}</p>{% endif %}
               </div>
               <div class="flex gap-2 shrink-0">

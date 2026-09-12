@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Users · Team Skills{% endblock %}
+
+{% block content %}
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold">Users</h1>
+    <a href="{% url 'create_user' %}" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Create user</a>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+    <ul class="divide-y divide-slate-100">
+      {% for user in users %}
+        <li class="py-3 flex items-center justify-between gap-4">
+          <div>
+            <p class="font-medium text-sm">
+              {{ user.username }}
+              {% if not user.is_active %}<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">deactivated</span>{% endif %}
+              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{{ user.get_tier_display }}</span>
+            </p>
+            <p class="text-xs text-slate-600">
+              {{ user.get_full_name|default:"—" }}
+              {% if user.job_title %} · {{ user.job_title }}{% endif %}
+              {% with teams=user.team_memberships.all %}
+                {% if teams %} · {{ teams|join:", " }}{% endif %}
+              {% endwith %}
+            </p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <form method="post" action="{% url 'change_tier' user.pk %}" class="flex items-center gap-1">
+              {% csrf_token %}
+              <select name="tier" class="text-sm border border-slate-300 rounded px-1 py-0.5">
+                {% for value, label in tiers %}
+                  <option value="{{ value }}" {% if user.tier == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="text-xs text-blue-600 hover:underline">Set tier</button>
+            </form>
+            {% if user.pk != request.user.pk %}
+              <form method="post" action="{% url 'toggle_active' user.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="text-xs {{ user.is_active|yesno:'text-red-600,text-green-600' }} hover:underline">
+                  {{ user.is_active|yesno:"Deactivate,Reactivate" }}
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endblock %}

@@ -11,7 +11,7 @@ from .services import team_coverage
 
 from teams.models import Team, TeamMembership, TeamSkillRequirement
 
-from .forms import AddMemberForm, AddRequirementForm, ChangeRoleForm
+from .forms import AddMemberForm, AddRequirementForm, ChangeRoleForm, CreateMemberForm
 
 
 def _can_edit_requirements(request, team):
@@ -55,6 +55,7 @@ def team_list(request):
     context = {
         "teams": teams_data,
         "add_member_form": AddMemberForm(manager=request.user),
+        "create_member_form": CreateMemberForm(manager=request.user),
         "add_requirement_form": AddRequirementForm(),
         "record_skill_form": RecordSkillForm(),
         "record_certificate_form": RecordCertificateForm(),
@@ -78,6 +79,25 @@ def add_member(request):
         messages.success(request, f"Added {user.username} to {team.name}.")
     else:
         messages.error(request, form.errors)
+    return redirect(reverse("team_list"))
+
+
+@require_tier("team_manager", "leadership")
+def create_member(request):
+    form = CreateMemberForm(manager=request.user, data=request.POST or None)
+    if form.is_valid():
+        team = form.cleaned_data["team"]
+        if not manages_team(request.user, team) and request.user.tier != Tier.LEADERSHIP:
+            return HttpResponseForbidden("You don't manage that team.")
+        user = form.save()
+        messages.success(
+            request,
+            f"Created {user.username} and added them to {team.name}.",
+        )
+        if request.user.tier == Tier.LEADERSHIP:
+            return redirect(reverse("user_list"))
+        return redirect(reverse("team_list"))
+    messages.error(request, form.errors)
     return redirect(reverse("team_list"))
 
 

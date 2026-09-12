@@ -209,7 +209,21 @@ def approve_certificate(request, pk):
     obj.status = CertificateAward.Status.APPROVED
     obj.approved_by = request.user
     obj.save()
-    messages.success(request, f"Approved {obj.certificate} for {obj.user.username}.")
+    SkillProficiency.objects.update_or_create(
+        user=obj.user,
+        skill=obj.skill,
+        defaults={
+            "level": obj.level,
+            "status": SkillProficiency.Status.APPROVED,
+            "reported_by": obj.user,
+            "approved_by": request.user,
+            "evidence": f"Certified via {obj.certificate} ({obj.obtained_on}).",
+        },
+    )
+    messages.success(
+        request,
+        f"Approved {obj.certificate} for {obj.user.username} and updated their {obj.skill} rating.",
+    )
     return redirect(reverse("approvals"))
 
 

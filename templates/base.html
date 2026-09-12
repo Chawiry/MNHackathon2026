@@ -21,6 +21,7 @@
         {% endif %}
         {% if user.tier == 'leadership' %}
           <a href="{% url 'project_list' %}" class="text-slate-600 hover:text-slate-900">Projects</a>
+          <a href="{% url 'user_list' %}" class="text-slate-600 hover:text-slate-900">Users</a>
         {% endif %}
         {% if user.tier == 'team_manager' or user.tier == 'leadership' %}
           <a href="{% url 'approvals' %}" class="text-slate-600 hover:text-slate-900">Approvals</a>

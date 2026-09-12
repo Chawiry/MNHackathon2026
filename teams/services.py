@@ -26,7 +26,7 @@ def team_coverage(team):
         count_met = sum(1 for level in levels if level >= req.required_level)
         if count_met >= people_needed:
             status = "Met"
-        elif levels and max_level < req.required_level and count_met == 0:
+        elif count_met == 0 and (not levels or max_level < req.required_level):
             status = "Gap"
         else:
             status = "Partial"

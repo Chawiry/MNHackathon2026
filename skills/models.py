@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class SkillCategory(models.Model):
@@ -128,6 +129,16 @@ class CertificateAward(models.Model):
         on_delete=models.PROTECT,
         related_name="awards",
     )
+    skill = models.ForeignKey(
+        Skill,
+        on_delete=models.PROTECT,
+        related_name="certificate_awards",
+        help_text="The skill this certificate confirms.",
+    )
+    level = models.PositiveSmallIntegerField(
+        choices=SkillProficiency.Level.choices,
+        help_text="Proficiency level this certificate confirms.",
+    )
     obtained_on = models.DateField()
     expires_on = models.DateField(null=True, blank=True)
     credential_url = models.URLField(blank=True)
@@ -157,3 +168,7 @@ class CertificateAward(models.Model):
 
     def __str__(self):
         return f"{self.user} – {self.certificate}"
+
+    @property
+    def is_expired(self):
+        return bool(self.expires_on and self.expires_on < timezone.localdate())

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Create user · Team Skills{% endblock %}
+
+{% block content %}
+  <div class="max-w-lg mx-auto bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+    <h1 class="text-xl font-semibold mb-1">Create user</h1>
+    <p class="text-sm text-slate-600 mb-4">
+      Provision an account and assign a tier. The new hire can log in and update
+      their profile details later.
+    </p>
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      {{ form.as_div }}
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded py-2 text-sm">
+        Create user
+      </button>
+    </form>
+  </div>
+{% endblock %}

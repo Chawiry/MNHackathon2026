@@ -59,8 +59,17 @@
           <ul class="divide-y divide-slate-100">
             {% for cert in certificates %}
               <li class="py-3">
-                <p class="font-medium text-sm">{{ cert.certificate.name }}</p>
-                <p class="text-xs text-slate-600">Obtained {{ cert.obtained_on|date:"M Y" }}</p>
+                <p class="font-medium text-sm">
+                  {{ cert.certificate.name }}
+                  {% if cert.is_expired %}
+                    <span class="ml-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">expired</span>
+                  {% endif %}
+                </p>
+                <p class="text-xs text-slate-600">
+                  {{ cert.skill.name }} · {{ cert.get_level_display }}
+                  · Obtained {{ cert.obtained_on|date:"M Y" }}
+                  {% if cert.certificate.issuer %} · {{ cert.certificate.issuer }}{% endif %}
+                </p>
                 <span class="inline-block mt-1 text-xs px-2 py-0.5 rounded-full
                   {% if cert.status == 'approved' %}bg-green-100 text-green-700
                   {% elif cert.status == 'pending' %}bg-amber-100 text-amber-700

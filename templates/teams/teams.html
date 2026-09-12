@@ -97,10 +97,27 @@
       {% if teams %}
       <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
         <h2 class="font-semibold mb-3">Add a member</h2>
+        <p class="text-xs text-slate-500 mb-2">Existing account</p>
         <form method="post" action="{% url 'add_member' %}" class="space-y-3">
           {% csrf_token %}
           {{ add_member_form.as_div }}
           <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Add member</button>
+        </form>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-semibold mb-3">Create a user and add to team</h2>
+        <p class="text-xs text-slate-500 mb-2">New hire — account is created as an employee.</p>
+        <form method="post" action="{% url 'create_member' %}" class="space-y-3">
+          {% csrf_token %}
+          <div class="grid grid-cols-2 gap-2">
+            <div>{{ create_member_form.username.label_tag }}{{ create_member_form.username }}</div>
+            <div>{{ create_member_form.first_name.label_tag }}{{ create_member_form.first_name }}</div>
+            <div>{{ create_member_form.job_title.label_tag }}{{ create_member_form.job_title }}</div>
+            <div>{{ create_member_form.team.label_tag }}{{ create_member_form.team }}</div>
+            <div class="col-span-2">{{ create_member_form.password.label_tag }}{{ create_member_form.password }}</div>
+          </div>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Create and add</button>
         </form>
       </div>
 

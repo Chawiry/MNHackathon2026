@@ -24,11 +24,15 @@ class RecordSkillForm(forms.ModelForm):
 class CertificateSubmitForm(forms.ModelForm):
     class Meta:
         model = CertificateAward
-        fields = ("certificate", "obtained_on", "expires_on", "credential_url")
+        fields = ("certificate", "skill", "level", "obtained_on", "expires_on", "credential_url")
         widgets = {
             "obtained_on": forms.DateInput(attrs={"type": "date"}),
             "expires_on": forms.DateInput(attrs={"type": "date"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["level"].choices = SkillProficiency.Level.choices
 
 
 class RecordCertificateForm(CertificateSubmitForm):

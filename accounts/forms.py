@@ -4,20 +4,20 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import User
 
 
-class SignupForm(UserCreationForm):
-    """Registration form bound to the custom auth user model."""
-
-    email = forms.EmailField(required=False)
+class CreateUserForm(UserCreationForm):
+    """Leadership creates fully-provisioned accounts (any tier)."""
 
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ("username", "email")
+        fields = ("username", "first_name", "last_name", "email", "job_title", "tier")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["first_name"].required = True
 
     def save(self, commit=True):
-        # New self-service accounts are always employees; tier is upgraded
-        # by a manager/leadership via the admin.
         user = super().save(commit=False)
-        user.email = self.cleaned_data.get("email", "")
+        user.is_active = True
         if commit:
             user.save()
         return user
