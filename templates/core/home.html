@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}Home · Team Skills{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl font-semibold mb-2">Welcome, {{ user.username }}</h1>
+  <p class="text-slate-600">This is the team skill management platform shell. Features land here next.</p>
+  <a href="{% url 'admin:index' %}" class="inline-block mt-6 text-sm text-blue-600 hover:underline">Go to admin panel →</a>
+{% endblock %}
