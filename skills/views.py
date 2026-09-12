@@ -1,9 +1,11 @@
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
+from accounts.models import Tier
 from accounts.tiers import require_tier, team_member_ids
 
 from .forms import (
@@ -13,6 +15,8 @@ from .forms import (
     SelfReportForm,
 )
 from .models import CertificateAward, SkillProficiency
+
+User = get_user_model()
 
 
 @login_required
@@ -139,12 +143,41 @@ def _resolve_approval(request, pk, award=False):
     obj = get_object_or_404(
         CertificateAward if award else SkillProficiency, pk=pk
     )
+    if request.user.tier == Tier.LEADERSHIP:
+        return obj
     if obj.user_id not in set(team_member_ids(request.user)):
         return None
     return obj
 
 
-@require_tier("team_manager")
+@require_tier("team_manager", "leadership")
+def approvals(request):
+    if request.user.tier == Tier.LEADERSHIP:
+        member_ids = User.objects.values_list("id", flat=True)
+    else:
+        member_ids = team_member_ids(request.user)
+
+    pending_skills = (
+        SkillProficiency.objects.filter(status=SkillProficiency.Status.PENDING, user_id__in=member_ids)
+        .select_related("user", "skill", "skill__category")
+        .order_by("user__username", "skill__name")
+    )
+    pending_certificates = (
+        CertificateAward.objects.filter(status=CertificateAward.Status.PENDING, user_id__in=member_ids)
+        .select_related("user", "certificate")
+        .order_by("user__username", "-created_at")
+    )
+    return render(
+        request,
+        "skills/approvals.html",
+        {
+            "pending_skills": pending_skills,
+            "pending_certificates": pending_certificates,
+        },
+    )
+
+
+@require_tier("team_manager", "leadership")
 def approve_proficiency(request, pk):
     obj = _resolve_approval(request, pk)
     if obj is None:
@@ -153,10 +186,10 @@ def approve_proficiency(request, pk):
     obj.approved_by = request.user
     obj.save()
     messages.success(request, f"Approved {obj.skill} for {obj.user.username}.")
-    return redirect(reverse("team_list"))
+    return redirect(reverse("approvals"))
 
 
-@require_tier("team_manager")
+@require_tier("team_manager", "leadership")
 def reject_proficiency(request, pk):
     obj = _resolve_approval(request, pk)
     if obj is None:
@@ -165,10 +198,10 @@ def reject_proficiency(request, pk):
     obj.approved_by = request.user
     obj.save()
     messages.warning(request, f"Rejected {obj.skill} for {obj.user.username}.")
-    return redirect(reverse("team_list"))
+    return redirect(reverse("approvals"))
 
 
-@require_tier("team_manager")
+@require_tier("team_manager", "leadership")
 def approve_certificate(request, pk):
     obj = _resolve_approval(request, pk, award=True)
     if obj is None:
@@ -177,10 +210,10 @@ def approve_certificate(request, pk):
     obj.approved_by = request.user
     obj.save()
     messages.success(request, f"Approved {obj.certificate} for {obj.user.username}.")
-    return redirect(reverse("team_list"))
+    return redirect(reverse("approvals"))
 
 
-@require_tier("team_manager")
+@require_tier("team_manager", "leadership")
 def reject_certificate(request, pk):
     obj = _resolve_approval(request, pk, award=True)
     if obj is None:
@@ -189,4 +222,4 @@ def reject_certificate(request, pk):
     obj.approved_by = request.user
     obj.save()
     messages.warning(request, f"Rejected {obj.certificate} for {obj.user.username}.")
-    return redirect(reverse("team_list"))
+    return redirect(reverse("approvals"))

@@ -3,10 +3,9 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from accounts.tiers import manages_team, require_tier, team_member_ids
+from accounts.tiers import manages_team, require_tier
 from projects.services import team_coverage
 from skills.forms import RecordCertificateForm, RecordSkillForm
-from skills.models import CertificateAward, SkillProficiency
 from teams.models import Team, TeamMembership
 
 from .forms import AddMemberForm, ChangeRoleForm
@@ -18,19 +17,6 @@ def team_list(request):
         memberships__user=request.user,
         memberships__role=TeamMembership.Role.MANAGER,
     ).distinct()
-
-    member_ids = set(team_member_ids(request.user))
-
-    pending_skills = (
-        SkillProficiency.objects.filter(status=SkillProficiency.Status.PENDING, user_id__in=member_ids)
-        .select_related("user", "skill", "skill__category")
-        .order_by("user__username", "skill__name")
-    )
-    pending_certificates = (
-        CertificateAward.objects.filter(status=CertificateAward.Status.PENDING, user_id__in=member_ids)
-        .select_related("user", "certificate")
-        .order_by("user__username", "-created_at")
-    )
 
     coverage = {team.id: team_coverage(team) for team in managed_teams}
 
@@ -49,8 +35,6 @@ def team_list(request):
 
     context = {
         "teams": teams_data,
-        "pending_skills": pending_skills,
-        "pending_certificates": pending_certificates,
         "add_member_form": AddMemberForm(manager=request.user),
         "record_skill_form": RecordSkillForm(),
         "record_certificate_form": RecordCertificateForm(),
