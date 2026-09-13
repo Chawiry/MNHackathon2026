@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from accounts.tiers import require_tier
 
-from .forms import CreateUserForm
+from .forms import CreateUserForm, SetLeaveDateForm
 from .models import Tier, User
 
 
@@ -59,4 +59,25 @@ def toggle_active(request, pk):
         request,
         f"{user.username} {'reactivated' if user.is_active else 'deactivated'}.",
     )
+    return redirect(reverse("user_list"))
+
+
+@require_tier("leadership")
+def set_leave_date(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    form = SetLeaveDateForm(request.POST, instance=user)
+    if form.is_valid():
+        form.save()
+        if user.expected_leave_date:
+            messages.success(
+                request,
+                f"Set expected leave date for {user.username}.",
+            )
+        else:
+            messages.success(
+                request,
+                f"Cleared expected leave date for {user.username}.",
+            )
+    else:
+        messages.error(request, form.errors)
     return redirect(reverse("user_list"))

@@ -85,7 +85,7 @@
               <p class="text-sm text-slate-500 mt-2">No requirements yet.</p>
             {% endif %}
 
-            {% include "teams/_requirements.html" with team=entry.team requirements=entry.requirements %}
+            {% include "teams/_requirements.html" with team=entry.team requirements=entry.requirements candidates=candidates %}
           </div>
         {% endfor %}
       {% else %}

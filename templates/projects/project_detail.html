@@ -85,7 +85,7 @@
                 <p class="text-sm text-slate-500 mt-2">No requirements for this team yet.</p>
               {% endif %}
 
-              {% include "teams/_requirements.html" with team=entry.team requirements=entry.team.skill_requirements.all add_requirement_form=add_requirement_form %}
+              {% include "teams/_requirements.html" with team=entry.team requirements=entry.requirements candidates=candidates add_requirement_form=add_requirement_form %}
             </div>
           {% endfor %}
         {% else %}

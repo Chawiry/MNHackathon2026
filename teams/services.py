@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from django.db.models import Count
+
 from skills.models import SkillProficiency
 
 
@@ -42,3 +44,25 @@ def team_coverage(team):
             }
         )
     return rows
+
+
+def requirement_candidates(requirement, limit=5):
+    """Org-wide employees competent for a requirement, excluding the team.
+
+    Ranked by proficiency level (highest first), then by how few teams they
+    are already on (availability), then by most recent update.
+    """
+    team_member_ids = set(
+        requirement.team.memberships.values_list("user_id", flat=True)
+    )
+    return list(
+        SkillProficiency.objects.filter(
+            status=SkillProficiency.Status.APPROVED,
+            skill_id=requirement.skill_id,
+            level__gte=requirement.required_level,
+        )
+        .exclude(user_id__in=team_member_ids)
+        .select_related("user")
+        .annotate(assignment_count=Count("user__team_memberships"))
+        .order_by("-level", "assignment_count", "-updated_at")[:limit]
+    )

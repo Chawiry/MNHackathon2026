@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from accounts.tiers import require_tier
 from teams.models import Team, TeamMembership
-from teams.services import team_coverage
+from teams.services import requirement_candidates, team_coverage
 
 from .forms import AddTeamForm, ProjectCreateForm
 from teams.forms import AddRequirementForm
@@ -44,17 +44,29 @@ def project_list(request):
 def project_detail(request, pk):
     project = get_object_or_404(Project, pk=pk)
     teams = []
+    candidates = {}
     for team in project.teams.all():
         roster = list(
             team.memberships.select_related("user").order_by("-role", "user__username")
         )
-        teams.append({"team": team, "roster": roster, "coverage_rows": team_coverage(team)})
+        requirements = list(team.skill_requirements.select_related("skill"))
+        for req in requirements:
+            candidates[req.pk] = requirement_candidates(req)
+        teams.append(
+            {
+                "team": team,
+                "roster": roster,
+                "coverage_rows": team_coverage(team),
+                "requirements": requirements,
+            }
+        )
     return render(
         request,
         "projects/project_detail.html",
         {
             "project": project,
             "teams": teams,
+            "candidates": candidates,
             "add_team_form": AddTeamForm(),
             "add_requirement_form": AddRequirementForm(),
         },

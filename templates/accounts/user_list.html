@@ -27,6 +27,12 @@
             </p>
           </div>
           <div class="flex items-center gap-2 shrink-0">
+            <form method="post" action="{% url 'set_leave_date' user.pk %}" class="flex items-center gap-1">
+              {% csrf_token %}
+              <label class="text-xs text-slate-500" title="Expected leave date">Leaves</label>
+              <input type="date" name="expected_leave_date" value="{{ user.expected_leave_date|date:'Y-m-d' }}" class="text-sm border border-slate-300 rounded px-1 py-0.5">
+              <button type="submit" class="text-xs text-blue-600 hover:underline">Set / Clear</button>
+            </form>
             <form method="post" action="{% url 'change_tier' user.pk %}" class="flex items-center gap-1">
               {% csrf_token %}
               <select name="tier" class="text-sm border border-slate-300 rounded px-1 py-0.5">

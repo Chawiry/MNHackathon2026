@@ -17,6 +17,11 @@ class User(AbstractUser):
     )
     job_title = models.CharField(max_length=100, blank=True)
     hire_date = models.DateField(null=True, blank=True)
+    expected_leave_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Leadership-estimated date this person is expected to leave.",
+    )
 
     def __str__(self):
         return self.get_full_name() or self.username

@@ -4,10 +4,10 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from accounts.models import Tier
+from accounts.models import Tier, User
 from accounts.tiers import manages_team, require_tier
 from skills.forms import RecordCertificateForm, RecordSkillForm
-from .services import team_coverage
+from .services import requirement_candidates, team_coverage
 
 from teams.models import Team, TeamMembership, TeamSkillRequirement
 
@@ -38,17 +38,21 @@ def team_list(request):
 
     coverage = {team.id: team_coverage(team) for team in managed_teams}
 
+    candidates = {}
     teams_data = []
     for team in managed_teams:
         roster = list(
             team.memberships.select_related("user").order_by("-role", "user__username")
         )
+        requirements = list(team.skill_requirements.select_related("skill"))
+        for req in requirements:
+            candidates[req.pk] = requirement_candidates(req)
         teams_data.append(
             {
                 "team": team,
                 "roster": roster,
                 "coverage_rows": coverage[team.id],
-                "requirements": team.skill_requirements.select_related("skill"),
+                "requirements": requirements,
             }
         )
 
@@ -59,6 +63,7 @@ def team_list(request):
         "add_requirement_form": AddRequirementForm(),
         "record_skill_form": RecordSkillForm(),
         "record_certificate_form": RecordCertificateForm(),
+        "candidates": candidates,
         "profile": request.user,
     }
     return render(request, "teams/teams.html", context)
@@ -152,4 +157,20 @@ def remove_requirement(request, pk):
     _can_edit_requirements(request, req.team)
     req.delete()
     messages.success(request, "Skill requirement removed.")
+    return redirect(_safe_return(request))
+
+
+@require_tier("team_manager", "leadership")
+def add_candidate(request, pk):
+    team = get_object_or_404(Team, pk=pk)
+    _can_edit_requirements(request, team)
+    user = get_object_or_404(User, pk=request.POST.get("user_id"))
+    membership, created = team.memberships.get_or_create(
+        user=user,
+        defaults={"role": TeamMembership.Role.MEMBER},
+    )
+    if created:
+        messages.success(request, f"Added {user.username} to {team.name}.")
+    else:
+        messages.info(request, f"{user.username} is already on {team.name}.")
     return redirect(_safe_return(request))

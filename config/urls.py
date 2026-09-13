@@ -8,6 +8,7 @@ urlpatterns = [
     path("teams/", include("teams.urls")),
     path("skills/", include("skills.urls")),
     path("projects/", include("projects.urls")),
+    path("insights/", include("insights.urls")),
     path("users/", include("accounts.urls")),
     path("", include("core.urls")),
 ]

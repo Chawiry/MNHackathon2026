@@ -8,6 +8,7 @@ Models implemented across four Django apps. Features build against these.
 - **`teams`** — `Team`, `TeamMembership`, `TeamSkillRequirement`
 - **`skills`** — `SkillCategory`, `Skill`, `SkillProficiency`, `Certificate`, `CertificateAward`
 - **`projects`** — `Project`
+- **`insights`** — no models; leadership analytics (pure services in `insights/services.py`)
 
 ## Key decisions
 
@@ -25,7 +26,9 @@ Models implemented across four Django apps. Features build against these.
   and shown as an **expired** flag only — it does not downgrade coverage.
 - **Provisioned accounts (no self-service)**: there is no public signup. Leadership creates
   accounts and assigns any tier on `/users/`; team managers create employee accounts that are
-  added to a team they manage in one step. Re-tiers and deactivations are leadership-only.
+  added to a team they manage in one step. Re-tiers, deactivations, and the expected leave date
+  (a leadership-estimated departure on `User.expected_leave_date`, used by stay/depletion
+  analytics) are leadership-only.
 - **Multi-team**: users join teams via `TeamMembership` (a manager role is a membership role).
 - **Projects spawn teams**: leadership creates a **Project**, which auto-spawns the project's
   first **Team** and assigns the chosen **team manager** (a `TeamMembership` with `role=manager`).
@@ -35,6 +38,10 @@ Models implemented across four Django apps. Features build against these.
   (`TeamSkillRequirement`; unique per `team × skill`). New teams start with none; team managers
   edit their own team's requirements and leadership can edit any team's. Coverage is computed
   against that team's own requirements only.
+- **Gig allocation**: for each requirement, `requirement_candidates(req)` suggests org-wide
+  approved employees at/above the required level — excluding the team itself — ranked by level,
+  fewest team memberships, recency (capped ~5). `add_candidate` assigns a chosen candidate as a
+  team member in one click (managers for managed teams, leadership for any team).
 - **Critical skills**: derived, not stored — from `TeamSkillRequirement` on teams for active
   projects where `importance = critical`, combined with coverage/concentration computed over
   approved `SkillProficiency` rows.
@@ -48,13 +55,17 @@ User ──< CertificateAward >(skill)── Skill
 Team ──< TeamSkillRequirement >── Skill
 ```
 
-## Analytic queries (no extra tables needed)
+## Analytic queries (`insights/services.py` — `GET /insights/`, leadership)
 
-- Coverage / gaps: compare the max or avg required level per active project vs the best
-  approved level per skill across the org/team.
-- Concentration / succession risk: count of approved holders per skill (few holders =
-  high concentration), optionally broken down by role/team.
-- Pending review queue: `SkillProficiency.objects.filter(status="pending")`.
+- `at_risk_skills()` — knowledge bottlenecks: low bus factor (≤ 2 approved holders) and/or
+  supply–demand shortfall (requirement slots > approved holders).
+- `expected_stays()` — remaining months per active user from `expected_leave_date` (leadership-set).
+- `skill_depletion()` — for each at-risk skill, the horizon the company retains it = the **last
+  holder's expected leave date**; `unknown` when a holder hasn't a date. Zero holders when the
+  last one leaves.
+- `successors()` — people below an at-risk skill's required level, ranked by
+  `(required − level) × MONTHS_PER_LEVEL` estimated months to readiness (top 3).
+- Tuneable constants: `MONTHS_PER_LEVEL = 6`, `BUS_FACTOR_THRESHOLD = 2`, `SUCCESSOR_CAP = 3`.
 
 ## Seeded data
 

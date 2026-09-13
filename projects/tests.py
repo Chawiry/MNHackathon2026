@@ -108,3 +108,23 @@ class ProjectCoverageSummaryTests(TestCase):
         response = self.client.get(reverse("project_detail", args=[self.project.pk]))
         self.assertContains(response, self.skill.name)
         self.assertContains(response, "Skill requirements")
+
+    def test_project_detail_renders_suited_candidates(self):
+        from teams.models import Team, TeamSkillRequirement
+
+        SkillProficiency.objects.create(
+            user=self.emp, skill=self.skill, level=4, status=SkillProficiency.Status.APPROVED
+        )
+        other = make_user("smoketest_other")
+        team2 = Team.objects.create(name="smoketest_otherteam")
+        TeamMembership.objects.create(
+            team=team2, user=other, role=TeamMembership.Role.MEMBER
+        )
+        SkillProficiency.objects.create(
+            user=other, skill=self.skill, level=4, status=SkillProficiency.Status.APPROVED
+        )
+        TeamSkillRequirement.objects.create(team=self.team, skill=self.skill, required_level=3)
+        response = self.client.get(reverse("project_detail", args=[self.project.pk]))
+        content = response.content.decode()
+        self.assertIn("Suited candidates", content)
+        self.assertIn(other.username, content)

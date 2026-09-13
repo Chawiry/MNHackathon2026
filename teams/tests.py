@@ -5,7 +5,7 @@ from accounts.models import Tier, User
 from core.test_utils import make_team, make_user
 
 from .models import Team, TeamMembership, TeamSkillRequirement
-from .services import team_coverage
+from .services import requirement_candidates, team_coverage
 
 
 class RequirementPermissionTests(TestCase):
@@ -251,3 +251,113 @@ class CreateMemberTests(TestCase):
         self.assertRedirects(response, reverse("user_list"))
         user = User.objects.get(username="smoketest_leaderhire")
         self.assertTrue(self.team_b.memberships.filter(user=user).exists())
+
+
+class GigAllocationTests(TestCase):
+    def setUp(self):
+        from skills.models import Skill, SkillCategory, SkillProficiency
+
+        self.category = SkillCategory.objects.create(name="Testing")
+        self.skill = Skill.objects.create(name="Python", category=self.category)
+        self.leader = make_user("smoketest_leader", Tier.LEADERSHIP)
+        self.mgr_a = make_user("smoketest_mgra", Tier.TEAM_MANAGER)
+        self.mgr_b = make_user("smoketest_mgrb", Tier.TEAM_MANAGER)
+        self.inhouse = make_user("smoketest_inhouse")
+        self.free_expert = make_user("smoketest_freeexp")
+        self.busy_expert = make_user("smoketest_busyexp")
+        self.under_qualified = make_user("smoketest_underq")
+
+        self.team_a = make_team("smoketest_giga", manager=self.mgr_a, members=[self.inhouse])
+        self.team_b = make_team("smoketest_gigb", manager=self.mgr_b)
+        self.req = TeamSkillRequirement.objects.create(
+            team=self.team_a, skill=self.skill, required_level=3
+        )
+
+        def proficiency(user, level):
+            SkillProficiency.objects.create(
+                user=user,
+                skill=self.skill,
+                level=level,
+                status=SkillProficiency.Status.APPROVED,
+            )
+
+        proficiency(self.inhouse, 4)
+        proficiency(self.free_expert, 5)
+        proficiency(self.busy_expert, 5)
+        proficiency(self.under_qualified, 1)
+        make_team("smoketest_busy1", manager=self.mgr_a, members=[self.busy_expert])
+        make_team("smoketest_busy2", manager=self.mgr_a, members=[self.busy_expert])
+
+        self.mgr_a_client = self._client(self.mgr_a)
+        self.mgr_b_client = self._client(self.mgr_b)
+        self.leader_client = self._client(self.leader)
+
+    def _client(self, user):
+        client = type(self.client)()
+        client.force_login(user)
+        return client
+
+    def test_candidates_are_qualified_and_exclude_team_members(self):
+        candidates = requirement_candidates(self.req)
+        names = {c.user.username for c in candidates}
+        self.assertIn("smoketest_freeexp", names)
+        self.assertNotIn("smoketest_inhouse", names)
+        self.assertNotIn("smoketest_underq", names)
+
+    def test_candidates_rank_experts_by_availability(self):
+        candidates = requirement_candidates(self.req)
+        self.assertEqual(candidates[0].user.username, "smoketest_freeexp")
+        self.assertEqual(candidates[1].user.username, "smoketest_busyexp")
+
+    def test_add_candidate_creates_membership(self):
+        response = self.mgr_a_client.post(
+            reverse("add_candidate", args=[self.team_a.pk]),
+            {"user_id": self.free_expert.pk},
+        )
+        self.assertRedirects(response, reverse("team_list"))
+        self.assertTrue(
+            self.team_a.memberships.filter(
+                user=self.free_expert, role=TeamMembership.Role.MEMBER
+            ).exists()
+        )
+
+    def test_add_candidate_deduplicates(self):
+        self.mgr_a_client.post(
+            reverse("add_candidate", args=[self.team_a.pk]),
+            {"user_id": self.inhouse.pk},
+        )
+        self.assertEqual(self.team_a.memberships.filter(user=self.inhouse).count(), 1)
+
+    def test_manager_blocked_adding_to_other_team(self):
+        response = self.mgr_b_client.post(
+            reverse("add_candidate", args=[self.team_a.pk]),
+            {"user_id": self.free_expert.pk},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            self.team_a.memberships.filter(user=self.free_expert).exists()
+        )
+
+    def test_employee_blocked(self):
+        employee = make_user("smoketest_employee")
+        client = self._client(employee)
+        response = client.post(
+            reverse("add_candidate", args=[self.team_a.pk]),
+            {"user_id": self.free_expert.pk},
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_leadership_adds_anywhere(self):
+        response = self.leader_client.post(
+            reverse("add_candidate", args=[self.team_b.pk]),
+            {"user_id": self.free_expert.pk},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(self.team_b.memberships.filter(user=self.free_expert).exists())
+
+    def test_team_list_renders_suited_candidates(self):
+        response = self.mgr_a_client.get(reverse("team_list"))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Suited candidates", content)
+        self.assertIn(self.free_expert.username, content)

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Insights · Team Skills{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl font-semibold mb-1">Org insights</h1>
+  <p class="text-sm text-slate-600 mb-6">
+    Bottlenecks, talent horizon, and readiness. Successor pace = {{ months_per_level }} months per level; bus-factor flag = {{ bus_factor_threshold }} or fewer holders.
+  </p>
+
+  <div class="grid lg:grid-cols-2 gap-6">
+    <section class="space-y-6">
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-semibold text-lg">Knowledge bottlenecks</h2>
+        <p class="text-xs text-slate-500 mb-3">Low bus factor or supply/demand shortfall.</p>
+        {% if bottlenecks %}
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-slate-500 border-b border-slate-200">
+                <th class="py-1 pr-3">Skill</th>
+                <th class="py-1 pr-3">Holders</th>
+                <th class="py-1 pr-3">Demand</th>
+                <th class="py-1 pr-3">Shortfall</th>
+                <th class="py-1">Flags</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in bottlenecks %}
+                <tr class="border-b border-slate-100">
+                  <td class="py-1.5 pr-3">
+                    <span class="font-medium">{{ row.skill.name }}</span>
+                    {% if row.critical %}<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 ml-1">critical</span>{% endif %}
+                  </td>
+                  <td class="py-1.5 pr-3">{{ row.holder_count }}</td>
+                  <td class="py-1.5 pr-3">{{ row.demand }}</td>
+                  <td class="py-1.5 pr-3 {% if row.shortfall %}text-red-700 font-medium{% endif %}">{{ row.shortfall }}</td>
+                  <td class="py-1.5">
+                    {% if row.low_bus_factor %}
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">bus factor &le; {{ bus_factor_threshold }}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p class="text-sm text-slate-500">No current bottlenecks.</p>
+        {% endif %}
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-semibold text-lg">Skill depletion</h2>
+        <p class="text-xs text-slate-500 mb-3">When a skill could be lost entirely — the last holder's expected leave date.</p>
+        {% if depletion %}
+          <div class="space-y-4">
+            {% for row in depletion %}
+              <div class="border border-slate-200 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <span class="font-medium">{{ row.skill.name }}</span>
+                    {% if row.critical %}<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 ml-1">critical</span>{% endif %}
+                  </div>
+                  {% if row.unknown %}
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">unclear — some holders have no leave date</span>
+                  {% elif row.last_leave_date %}
+                    {% if row.months_left %}
+                      <span class="text-xs font-medium text-red-700">{{ row.months_left }} months ({{ row.last_leave_date|date:"M Y" }})</span>
+                    {% else %}
+                      <span class="text-xs font-medium text-slate-600">{{ row.last_leave_date|date:"M Y" }}</span>
+                    {% endif %}
+                  {% endif %}
+                </div>
+                <ul class="mt-2 divide-y divide-slate-100 text-sm">
+                  {% for holder in row.holders %}
+                    <li class="py-1.5 flex items-center justify-between">
+                      <span>{{ holder.name }} <span class="text-slate-500">· {{ holder.level }}</span></span>
+                      <span class="text-slate-600">{{ holder.expected_leave_date|default:"no leave date"|date:"M Y" }}</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-sm text-slate-500">No skills at risk of depletion.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="space-y-6">
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-semibold text-lg">Successor readiness</h2>
+        <p class="text-xs text-slate-500 mb-3">Top under-qualified holders, estimated months to the required level.</p>
+        {% if successors %}
+          <div class="space-y-4">
+            {% for entry in successors %}
+              <div class="border border-slate-200 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium">
+                    {{ entry.skill.name }}
+                    {% if entry.critical %}<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 ml-1">critical</span>{% endif %}
+                  </span>
+                  <span class="text-xs text-slate-600">target {{ entry.required_level }}</span>
+                </div>
+                <ul class="mt-2 divide-y divide-slate-100 text-sm">
+                  {% for c in entry.candidates %}
+                    <li class="py-1.5 flex items-center justify-between">
+                      <span>{{ c.name }} <span class="text-slate-500">· {{ c.level }}</span></span>
+                      <span class="text-slate-600">{{ c.gap }} level{{ c.gap|pluralize }}, ~{{ c.months }} mo</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-sm text-slate-500">No successors to project yet.</p>
+        {% endif %}
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-semibold text-lg">Expected stay</h2>
+        <p class="text-xs text-slate-500 mb-3">Leadership-set leave dates. Set them on the Users page.</p>
+        {% if stays %}
+          <ul class="divide-y divide-slate-100 text-sm">
+            {% for row in stays %}
+              <li class="py-1.5 flex items-center justify-between">
+                <span>{{ row.user.get_full_name|default:row.user.username }}</span>
+                {% if row.months_remaining is not None %}
+                  <span class="text-slate-600">{{ row.months_remaining }} months left ({{ row.expected_leave_date|date:"M Y" }})</span>
+                {% else %}
+                  <span class="text-slate-400">no expected leave date</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-sm text-slate-500">No active employees.</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+{% endblock %}

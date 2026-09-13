@@ -1,25 +1,48 @@
+{% load team_tags %}
+
 <div class="mt-4 bg-slate-50 border border-slate-200 rounded-lg p-4">
   <h4 class="text-sm font-semibold text-slate-700">Skill requirements</h4>
   {% if requirements %}
     <ul class="mt-2 divide-y divide-slate-100">
       {% for req in requirements %}
-        <li class="py-1.5 flex items-center justify-between gap-3 text-sm">
-          <div>
-            <span class="font-medium">{{ req.skill.name }}</span>
-            <span class="text-slate-600"> · {{ req.get_required_level_display }}</span>
-            {% if req.people_needed %}<span class="text-slate-600"> · {{ req.people_needed }} needed</span>{% endif %}
-            <span class="ml-1 text-xs px-2 py-0.5 rounded-full
-              {% if req.importance == 'critical' %}bg-red-100 text-red-700
-              {% elif req.importance == 'important' %}bg-amber-100 text-amber-700
-              {% else %}bg-slate-100 text-slate-600{% endif %}">
-              {{ req.get_importance_display }}
-            </span>
+        <li class="py-1.5">
+          <div class="flex items-center justify-between gap-3 text-sm">
+            <div>
+              <span class="font-medium">{{ req.skill.name }}</span>
+              <span class="text-slate-600"> · {{ req.get_required_level_display }}</span>
+              {% if req.people_needed %}<span class="text-slate-600"> · {{ req.people_needed }} needed</span>{% endif %}
+              <span class="ml-1 text-xs px-2 py-0.5 rounded-full
+                {% if req.importance == 'critical' %}bg-red-100 text-red-700
+                {% elif req.importance == 'important' %}bg-amber-100 text-amber-700
+                {% else %}bg-slate-100 text-slate-600{% endif %}">
+                {{ req.get_importance_display }}
+              </span>
+            </div>
+            <form method="post" action="{% url 'remove_team_requirement' req.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <button type="submit" class="text-xs text-red-600 hover:underline">Remove</button>
+            </form>
           </div>
-          <form method="post" action="{% url 'remove_team_requirement' req.pk %}">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <button type="submit" class="text-xs text-red-600 hover:underline">Remove</button>
-          </form>
+          {% with suited=candidates|get_item:req.pk %}
+            {% if suited %}
+              <p class="mt-1.5 text-xs text-slate-600">Suited candidates:
+                {% for candidate in suited %}
+                  <span class="inline-flex items-center gap-1">
+                    {{ candidate.user.get_full_name|default:candidate.user.username }}
+                    <span class="text-slate-400">({{ candidate.get_level_display }})</span>
+                    <form method="post" action="{% url 'add_candidate' team.pk %}" class="inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="user_id" value="{{ candidate.user.pk }}">
+                      <input type="hidden" name="next" value="{{ request.path }}">
+                      <button type="submit" class="text-blue-600 hover:underline">Add</button>
+                    </form>
+                    {% if not forloop.last %},{% endif %}
+                  </span>
+                {% endfor %}
+              </p>
+            {% endif %}
+          {% endwith %}
         </li>
       {% endfor %}
     </ul>
