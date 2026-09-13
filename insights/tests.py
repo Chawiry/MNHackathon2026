@@ -6,14 +6,16 @@ from django.urls import reverse
 from accounts.models import Tier
 from core.test_utils import make_team, make_user
 from insights.models import StrategicInitiative, TeamFeedback
+from projects.models import Project
 from skills.models import (
     Skill,
     SkillCategory,
     SkillCriticalityAssessment,
+    SkillFutureDemand,
     SkillProficiency,
     SkillRelationship,
 )
-from teams.models import Department, TeamMembership, TeamSkillRequirement
+from teams.models import Department, Team, TeamMembership, TeamSkillRequirement
 
 from . import services
 
@@ -1073,3 +1075,488 @@ class PromotionGapTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse("my_skills"))
         self.assertContains(response, "next position")
+
+
+class SuccessionCoverageMathTests(TestCase):
+    """Phase 7: success candidate readiness % and coverage ratio math."""
+
+    def setUp(self):
+        self.category = SkillCategory.objects.create(name="Succession math")
+        self.skill = Skill.objects.create(name="Coverage Core", category=self.category)
+        self.adjacent = Skill.objects.create(
+            name="Coverage Adjacent", category=self.category
+        )
+        SkillRelationship.objects.create(
+            from_skill=self.skill,
+            to_skill=self.adjacent,
+            kind=SkillRelationship.Kind.TRANSFERS,
+            weight=4,
+        )
+        self.holder = make_user("coverage_holder")
+        SkillProficiency.objects.create(
+            user=self.holder,
+            skill=self.skill,
+            level=4,
+            status=SkillProficiency.Status.APPROVED,
+        )
+
+    def _qualified_successor(self, label):
+        user = make_user(label)
+        SkillProficiency.objects.create(
+            user=user, skill=self.skill, level=2, status=SkillProficiency.Status.APPROVED
+        )
+        SkillProficiency.objects.create(
+            user=user,
+            skill=self.adjacent,
+            level=5,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        return user
+
+    def _partway_candidate(self, label):
+        user = make_user(label)
+        SkillProficiency.objects.create(
+            user=user, skill=self.skill, level=2, status=SkillProficiency.Status.APPROVED
+        )
+        return user
+
+    def test_candidate_readiness_and_months(self):
+        bob = self._qualified_successor("coverage_bob")
+        card = services.succession_for_skill(self.skill)
+        candidate = card["candidates"][0]
+        self.assertEqual(candidate["user"], bob)
+        # (2/5)*60 + (5/5)*40 = 24 + 40 = 64% readiness
+        self.assertEqual(candidate["readiness"], 64)
+        self.assertEqual(candidate["months"], 12)
+        self.assertFalse(candidate["ready_today"])  # below the 80% bar
+
+    def test_coverage_ratio_is_qualified_over_holders(self):
+        self._qualified_successor("coverage_bob")
+        self.assertEqual(services.succession_for_skill(self.skill)["coverage_ratio"], 1.0)
+
+    def test_half_coverage_with_single_qualified_successor(self):
+        second_holder = make_user("coverage_holder2")
+        SkillProficiency.objects.create(
+            user=second_holder,
+            skill=self.skill,
+            level=4,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        self._qualified_successor("coverage_bob")
+        self.assertEqual(services.succession_for_skill(self.skill)["coverage_ratio"], 0.5)
+
+    def test_partway_candidate_counts_fractional_coverage(self):
+        self._partway_candidate("coverage_halfway")
+        # readiness 24% -> no one qualifies, strongest pipeline counts as 0.24
+        self.assertEqual(services.succession_for_skill(self.skill)["coverage_ratio"], 0.24)
+
+    def test_single_holder_gets_kt_recommended(self):
+        card = services.succession_for_skill(self.skill)
+        self.assertTrue(card["kt_recommended"])
+        self.assertEqual(card["holder_count"], 1)
+
+
+class ReadinessFormulaTests(TestCase):
+    """Phase 7: readiness = 100 x sum(criticality x coverage) / sum(criticality)."""
+
+    def setUp(self):
+        self.category = SkillCategory.objects.create(name="Readiness formula")
+        self.dept = Department.objects.create(name="Smoketest Readiness")
+        self.covered = Skill.objects.create(name="Formula Covered", category=self.category)
+        self.uncovered = Skill.objects.create(name="Formula Uncovered", category=self.category)
+        self.adjacent = Skill.objects.create(
+            name="Formula Adjacent", category=self.category
+        )
+        self.adjacent2 = Skill.objects.create(
+            name="Formula Adjacent2", category=self.category
+        )
+        SkillRelationship.objects.create(
+            from_skill=self.covered,
+            to_skill=self.adjacent,
+            kind=SkillRelationship.Kind.TRANSFERS,
+            weight=4,
+        )
+        SkillRelationship.objects.create(
+            from_skill=self.uncovered,
+            to_skill=self.adjacent2,
+            kind=SkillRelationship.Kind.TRANSFERS,
+            weight=4,
+        )
+        SkillsCriticality = SkillCriticalityAssessment
+        SkillsCriticality.objects.create(
+            department=self.dept,
+            skill=self.covered,
+            criticality_score=80,
+            version=1,
+        )
+        SkillsCriticality.objects.create(
+            department=self.dept,
+            skill=self.uncovered,
+            criticality_score=60,
+            version=1,
+        )
+        alice = make_user("formula_alice")
+        SkillProficiency.objects.create(
+            user=alice,
+            skill=self.covered,
+            level=4,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        bob = make_user("formula_bob")
+        SkillProficiency.objects.create(
+            user=bob,
+            skill=self.covered,
+            level=2,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        SkillProficiency.objects.create(
+            user=bob,
+            skill=self.adjacent,
+            level=5,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        carol = make_user("formula_carol")
+        SkillProficiency.objects.create(
+            user=carol,
+            skill=self.uncovered,
+            level=4,
+            status=SkillProficiency.Status.APPROVED,
+        )
+
+    def test_weighted_readiness_blends_covered_and_uncovered(self):
+        # coverage 1.0 (80) + coverage 0.0 (60) -> round(100 * 80/140) = 57
+        self.assertEqual(services.readiness_score(self.dept), (57, 2))
+
+    def test_no_critical_skills_is_fully_ready(self):
+        empty_dept = Department.objects.create(name="Smoketest Empty")
+        self.assertEqual(services.readiness_score(empty_dept), (100, 0))
+
+    def test_full_coverage_after_second_holder_arrives(self):
+        second = make_user("formula_uncovered2")
+        SkillProficiency.objects.create(
+            user=second,
+            skill=self.uncovered,
+            level=2,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        SkillProficiency.objects.create(
+            user=second,
+            skill=self.adjacent2,
+            level=5,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        # both critical skills fully covered -> 100 weighted readiness
+        self.assertEqual(services.readiness_score(self.dept), (100, 2))
+
+
+class GapOrderingTests(TestCase):
+    """Phase 7: employee gap priority ordering (size, criticality, importance)."""
+
+    def setUp(self):
+        self.category = SkillCategory.objects.create(name="Gap ordering")
+        self.dept = Department.objects.create(name="Smoketest Gaps")
+        self.manager = make_user("gap_manager", Tier.TEAM_MANAGER)
+        self.team = make_team("Gap team", manager=self.manager)
+        self.user = make_user("gap_employee")
+        TeamMembership.objects.create(
+            team=self.team, user=self.user, role=TeamMembership.Role.MEMBER
+        )
+        self.high = Skill.objects.create(name="Gap High", category=self.category)
+        self.mid = Skill.objects.create(name="Gap Mid", category=self.category)
+        self.low = Skill.objects.create(name="Gap Low", category=self.category)
+        self.met = Skill.objects.create(name="Gap Met", category=self.category)
+        SkillCriticalityAssessment.objects.create(
+            department=self.dept,
+            skill=self.mid,
+            criticality_score=100,
+            version=1,
+        )
+
+    def _req(self, skill, level, importance):
+        return TeamSkillRequirement.objects.create(
+            team=self.team,
+            skill=skill,
+            required_level=level,
+            importance=importance,
+        )
+
+    def test_gaps_sorted_by_priority_descending(self):
+        self._req(self.low, 1, TeamSkillRequirement.Importance.IMPORTANT)
+        self._req(self.mid, 2, TeamSkillRequirement.Importance.IMPORTANT)
+        self._req(self.high, 5, TeamSkillRequirement.Importance.CRITICAL)
+        SkillProficiency.objects.create(
+            user=self.user,
+            skill=self.met,
+            level=3,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        gaps = services.employee_gaps(self.user)
+        names = [g["skill"].name for g in gaps]
+        self.assertEqual(names, ["Gap High", "Gap Mid", "Gap Low"])
+        self.assertEqual([g["priority"] for g in gaps], [70, 60, 20])
+
+    def test_satisfied_requirements_are_not_gaps(self):
+        self._req(self.met, 2, TeamSkillRequirement.Importance.CRITICAL)
+        SkillProficiency.objects.create(
+            user=self.user,
+            skill=self.met,
+            level=3,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        self.assertEqual(services.employee_gaps(self.user), [])
+
+    def test_criticality_contributes_up_to_thirty_points(self):
+        self._req(self.mid, 1, TeamSkillRequirement.Importance.OPTIONAL)
+        gap = services.employee_gaps(self.user)[0]
+        # 10 (gap size) + 30 (100 criticality) + 0 = 40
+        self.assertEqual(gap["priority"], 40)
+
+
+class RecommendationRuleTests(TestCase):
+    """Phase 7: the five IF->THEN gap recommendations (Gap 5)."""
+
+    def setUp(self):
+        self.category = SkillCategory.objects.create(name="Recommendation rules")
+        self.dept = Department.objects.create(name="Smoketest Recs")
+        self.manager = make_user("rec_manager", Tier.TEAM_MANAGER)
+        self.team = make_team("Rec team", manager=self.manager)
+        self.user = make_user("rec_employee")
+        TeamMembership.objects.create(
+            team=self.team, user=self.user, role=TeamMembership.Role.MEMBER
+        )
+
+    def _skills(self, prefix, adjacent=False):
+        target = Skill.objects.create(name=f"{prefix} Target", category=self.category)
+        if adjacent:
+            adj = Skill.objects.create(name=f"{prefix} Adjacent", category=self.category)
+            SkillRelationship.objects.create(
+                from_skill=target,
+                to_skill=adj,
+                kind=SkillRelationship.Kind.TRANSFERS,
+                weight=4,
+            )
+            return target, adj
+        return target
+
+    def _require(self, skill, level=3):
+        TeamSkillRequirement.objects.create(
+            team=self.team, skill=skill, required_level=level
+        )
+
+    def _abbreviated(self, rec):
+        return {"rule": rec["rule"], "action": rec["recommendation"]}
+
+    def test_rule1_adjacent_skill_routes_to_training(self):
+        target, adj = self._skills("Rule1", adjacent=True)
+        SkillProficiency.objects.create(
+            user=self.user,
+            skill=adj,
+            level=3,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        self._require(target)
+        rec = services.development_recommendations(self.user, services.employee_gaps(self.user))[0]
+        self.assertEqual(rec["rule"], 1)
+        self.assertIn("Targeted training / certification", rec["recommendation"])
+
+    def test_rule3_org_peer_routes_to_rotation(self):
+        target = self._skills("Rule3")
+        peer = make_user("rec_peer")
+        SkillProficiency.objects.create(
+            user=peer,
+            skill=target,
+            level=4,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        self._require(target)
+        rec = services.development_recommendations(self.user, services.employee_gaps(self.user))[0]
+        self.assertEqual(rec["rule"], 3)
+        self.assertIn("Job rotation or shadowing", rec["recommendation"])
+
+    def test_rule2_from_scratch_courses_with_mentor(self):
+        target = self._skills("Rule2")
+        mentor = make_user("rec_mentor")
+        SkillProficiency.objects.create(
+            user=mentor,
+            skill=target,
+            level=3,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        self._require(target)
+        rec = services.development_recommendations(self.user, services.employee_gaps(self.user))[0]
+        self.assertEqual(rec["rule"], 2)
+        self.assertIn("Structured course + mentoring pairing", rec["recommendation"])
+        self.assertIn(mentor.username, rec["recommendation"])
+
+    def test_rule2_with_no_holders_names_no_mentor(self):
+        target = self._skills("Rule2b")
+        self._require(target)
+        rec = services.development_recommendations(self.user, services.employee_gaps(self.user))[0]
+        self.assertEqual(rec["rule"], 2)
+        self.assertNotIn("mentoring pairing with", rec["recommendation"])
+
+    def test_rule4_critical_single_holder_knock_knowledge_transfer(self):
+        target = self._skills("Rule4")
+        SkillCriticalityAssessment.objects.create(
+            department=self.dept,
+            skill=target,
+            criticality_score=80,
+            version=1,
+        )
+        helper = make_user("rec_helper")
+        SkillProficiency.objects.create(
+            user=helper,
+            skill=target,
+            level=3,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        self._require(target)
+        rec = services.development_recommendations(self.user, services.employee_gaps(self.user))[0]
+        self.assertTrue(
+            any(e["action_kind"] == "kt" for e in rec["extras"])
+        )
+
+    def test_rule5_emerging_skill_suggests_external_cert(self):
+        target = self._skills("Rule5")
+        SkillFutureDemand.objects.create(
+            skill=target,
+            direction=SkillFutureDemand.Direction.EMERGING,
+            confidence_level=SkillFutureDemand.Confidence.HIGH,
+            future_importance=5,
+        )
+        self._require(target)
+        rec = services.development_recommendations(self.user, services.employee_gaps(self.user))[0]
+        self.assertTrue(
+            any(e["action_kind"] == "external" for e in rec["extras"])
+        )
+
+
+class PlanReadinessDiagnosisTests(TestCase):
+    """Phase 7: plan readiness = manning x qualification x availability.
+
+    Diagnosis cases A (hiring), B (qualification), C (availability), D (ready).
+    """
+
+    def setUp(self):
+        self.category = SkillCategory.objects.create(name="Plan readiness")
+        self.skill = Skill.objects.create(name="Plan Skill", category=self.category)
+        self.project = Project.objects.create(
+            name="smoketest_plan", status=Project.Status.ACTIVE
+        )
+        self.team = Team.objects.create(name="Plan team", project=self.project)
+        self.mgr = make_user("plan_mgr", Tier.TEAM_MANAGER)
+        TeamMembership.objects.create(
+            team=self.team, user=self.mgr, role=TeamMembership.Role.MANAGER
+        )
+
+    def _member(self, label):
+        user = make_user(label)
+        TeamMembership.objects.create(
+            team=self.team, user=user, role=TeamMembership.Role.MEMBER
+        )
+        return user
+
+    def _require(self, people_needed, level=3):
+        return TeamSkillRequirement.objects.create(
+            team=self.team,
+            skill=self.skill,
+            required_level=level,
+            people_needed=people_needed,
+        )
+
+    def _backfill_teams(self, users, count):
+        for user in users:
+            for i in range(count):
+                extra = Team.objects.create(name=f"{user.username} extra {i}")
+                TeamMembership.objects.create(
+                    team=extra, user=user, role=TeamMembership.Role.MEMBER
+                )
+
+    def _qualified(self, user, level=4):
+        SkillProficiency.objects.create(
+            user=user,
+            skill=self.skill,
+            level=level,
+            status=SkillProficiency.Status.APPROVED,
+        )
+
+    def test_case_a_hiring_problem_not_enough_people(self):
+        self._require(people_needed=5)
+        self._qualified(self.mgr)
+        row = services.plan_readiness(self.project)[0]
+        self.assertEqual(row["manning_pct"], 20)
+        self.assertEqual(row["diagnosis"], "Hiring problem — not enough people (manning low)")
+
+    def test_case_b_qualification_problem_too_few_qualified(self):
+        self._require(people_needed=3)
+        self._member("plan_b")
+        row = services.plan_readiness(self.project)[0]
+        self.assertTrue(row["qualification_pct"] < 90)
+        self.assertIn("Qualification problem", row["diagnosis"])
+
+    def test_case_c_availability_problem_overcommitted_people(self):
+        self._require(people_needed=2)
+        member = self._member("plan_c")
+        self._qualified(self.mgr)
+        self._qualified(member)
+        self._backfill_teams([self.mgr, member], count=2)
+        row = services.plan_readiness(self.project)[0]
+        self.assertEqual(row["availability_pct"], 0)
+        self.assertIn("Availability problem", row["diagnosis"])
+
+    def test_case_d_ready_full_manning_qualification_availability(self):
+        self._require(people_needed=2)
+        member = self._member("plan_d")
+        self._qualified(self.mgr)
+        self._qualified(member)
+        row = services.plan_readiness(self.project)[0]
+        self.assertEqual(row["manning_pct"], 100)
+        self.assertEqual(row["qualification_pct"], 100)
+        self.assertEqual(row["availability_pct"], 100)
+        self.assertEqual(row["readiness_pct"], 100)
+        self.assertEqual(row["diagnosis"], "Ready")
+
+
+class SkillAdoptionSimulationTests(TestCase):
+    """Phase 7: what-if skill-adoption simulation."""
+
+    def setUp(self):
+        self.category = SkillCategory.objects.create(name="Adoption sim")
+        self.skill = Skill.objects.create(name="Adopt Core", category=self.category)
+        self.adjacent = Skill.objects.create(name="Adopt Adjacent", category=self.category)
+        SkillRelationship.objects.create(
+            from_skill=self.skill,
+            to_skill=self.adjacent,
+            kind=SkillRelationship.Kind.TRANSFERS,
+            weight=4,
+        )
+
+    def test_rare_skill_flags_hiring_and_uses_adjacent_pool(self):
+        seed = make_user("adopt_seed")
+        SkillProficiency.objects.create(
+            user=seed,
+            skill=self.adjacent,
+            level=3,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        sim = services.simulate_skill_adoption(self.skill)
+        self.assertTrue(sim["hiring_recommended"])
+        self.assertEqual(sim["qualified_count"], 0)
+        self.assertEqual(sim["adjacent_pool_size"], 1)
+        self.assertEqual(sim["est_training_months"], services.MONTHS_PER_LEVEL * 2)
+        self.assertEqual(sim["rarity_label"], "unavailable")
+
+    def test_staffed_skill_does_not_recommend_hiring(self):
+        for label in ("adopt_one", "adopt_two"):
+            user = make_user(label)
+            SkillProficiency.objects.create(
+                user=user,
+                skill=self.skill,
+                level=3,
+                status=SkillProficiency.Status.APPROVED,
+            )
+        sim = services.simulate_skill_adoption(self.skill)
+        self.assertFalse(sim["hiring_recommended"])
+        self.assertEqual(sim["qualified_count"], 2)
+        self.assertEqual(sim["holder_count"], 2)
+        self.assertEqual(sim["est_training_months"], services.MONTHS_PER_LEVEL * 4)

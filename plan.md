@@ -3,7 +3,7 @@
 This is the plan we follow. **We do not advance to the next phase until the
 current phase is complete and the user says so.**
 
-## Current status: Phase 6 (profile models + promotion gaps) implemented — awaiting user review before Phase 7
+## Current status: Phase 7 (tests & verification) complete — all plan phases implemented
 
 ## Scope decisions (locked)
 

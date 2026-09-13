@@ -147,8 +147,12 @@ def add_requirement(request, pk):
     _can_edit_requirements(request, team)
     form = AddRequirementForm(request.POST)
     if form.is_valid():
-        TeamSkillRequirement.objects.create(team=team, **form.cleaned_data)
-        messages.success(request, "Skill requirement added.")
+        skill = form.cleaned_data["skill"]
+        if TeamSkillRequirement.objects.filter(team=team, skill=skill).exists():
+            messages.error(request, "This team already requires that skill.")
+        else:
+            TeamSkillRequirement.objects.create(team=team, **form.cleaned_data)
+            messages.success(request, "Skill requirement added.")
     else:
         messages.error(request, form.errors)
     return redirect(_safe_return(request))

@@ -62,6 +62,19 @@ class RequirementPermissionTests(TestCase):
             TeamSkillRequirement.objects.filter(team=self.team_b).count(), 1
         )
 
+    def test_duplicate_requirement_reports_error_not_500(self):
+        TeamSkillRequirement.objects.create(
+            team=self.team_a, skill=self.skill, required_level=3
+        )
+        response = self.mgr_a_client.post(
+            reverse("add_team_requirement", args=[self.team_a.pk]),
+            {"skill": self.skill.pk, "required_level": 3, "importance": "important"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            TeamSkillRequirement.objects.filter(team=self.team_a).count(), 1
+        )
+
     def test_employee_blocked_on_requirements(self):
         response = self.emp.post(
             reverse("add_team_requirement", args=[self.team_a.pk]),
