@@ -62,7 +62,7 @@
   {
     "model": "skills.skill",
     "pk": 8,
-    "fields": { "name": "Amazon Web Services (AWS)", "category": 3, "description": "Core AWS services and architecture", "is_active": true }
+    "fields": { "name": "AWS", "category": 3, "description": "Core AWS services and architecture", "is_active": true }
   },
   {
     "model": "skills.skill",
@@ -103,5 +103,25 @@
     "model": "skills.skill",
     "pk": 16,
     "fields": { "name": "Presentation Skills", "category": 5, "description": "Communicating to groups and stakeholders", "is_active": true }
+  },
+  {
+    "model": "skills.skill",
+    "pk": 17,
+    "fields": { "name": "Generative AI / LLM", "category": 2, "description": "Building and applying LLM-based products and workflows", "is_active": true }
+  },
+  {
+    "model": "skills.skill",
+    "pk": 18,
+    "fields": { "name": "Data Engineering", "category": 2, "description": "Building and maintaining data pipelines and warehouses", "is_active": true }
+  },
+  {
+    "model": "skills.skill",
+    "pk": 19,
+    "fields": { "name": "Cyber Security", "category": 3, "description": "Securing systems, networks, and data", "is_active": true }
+  },
+  {
+    "model": "skills.skill",
+    "pk": 20,
+    "fields": { "name": "Change Management", "category": 5, "description": "Guiding people and organizations through change", "is_active": true }
   }
 ]

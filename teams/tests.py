@@ -270,7 +270,7 @@ class GigAllocationTests(TestCase):
         self.team_a = make_team("smoketest_giga", manager=self.mgr_a, members=[self.inhouse])
         self.team_b = make_team("smoketest_gigb", manager=self.mgr_b)
         self.req = TeamSkillRequirement.objects.create(
-            team=self.team_a, skill=self.skill, required_level=3
+            team=self.team_a, skill=self.skill, required_level=3, people_needed=2
         )
 
         def proficiency(user, level):
@@ -361,3 +361,29 @@ class GigAllocationTests(TestCase):
         content = response.content.decode()
         self.assertIn("Suited candidates", content)
         self.assertIn(self.free_expert.username, content)
+
+    def test_candidates_hidden_when_requirement_fully_covered(self):
+        from skills.models import SkillProficiency
+
+        inhouse = SkillProficiency.objects.get(user=self.inhouse, skill=self.skill)
+        inhouse.level = 5
+        inhouse.save()
+        extra = make_user("smoketest_extra")
+        make_team("smoketest_aux", manager=self.mgr_a, members=[extra])
+        SkillProficiency.objects.create(
+            user=extra,
+            skill=self.skill,
+            level=3,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        self.req.people_needed = 5
+        self.req.save()
+        # inhouse + extra = 2 met of 5 -> still a gap, block shows.
+        response = self.mgr_a_client.get(reverse("team_list"))
+        self.assertIn("Suited candidates", response.content.decode())
+
+        self.req.people_needed = 1
+        self.req.save()
+        # inhouse now meets the only needed spot -> block hidden.
+        response = self.mgr_a_client.get(reverse("team_list"))
+        self.assertNotIn("Suited candidates", response.content.decode())

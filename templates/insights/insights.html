@@ -3,15 +3,116 @@
 {% block title %}Insights · Team Skills{% endblock %}
 
 {% block content %}
-  <h1 class="text-2xl font-semibold mb-1">Org insights</h1>
-  <p class="text-sm text-slate-600 mb-6">
+  <div class="flex items-center justify-between gap-4">
+    <h1 class="text-2xl font-semibold mb-1">Org insights</h1>
+    <div class="flex items-center gap-4 text-sm font-medium">
+      <a href="{% url 'cascade_list' %}" class="text-blue-600 hover:underline">Leadership cascade →</a>
+      <a href="{% url 'feedback_list' %}" class="text-blue-600 hover:underline">Team feedback →</a>
+      <a href="{% url 'criticality_list' %}" class="text-blue-600 hover:underline">Edit criticality inputs →</a>
+    </div>
+  </div>
+  <p class="text-sm text-slate-600 mb-2">
     Bottlenecks, talent horizon, and readiness. Successor pace = {{ months_per_level }} months per level; bus-factor flag = {{ bus_factor_threshold }} or fewer holders.
   </p>
+  <p class="text-xs mb-6 rounded border border-slate-200 bg-slate-50 text-slate-500 px-3 py-2">
+    Anonymization: aggregates over groups smaller than {{ anon_group_size }} people are coarsened to a range and individual names are masked for privacy.
+  </p>
+
+  <form method="get" class="mb-6 flex items-center gap-3 text-sm">
+    <label for="dept-filter" class="font-medium text-slate-700">Scope</label>
+    <select id="dept-filter" name="dept" onchange="this.form.submit()"
+            class="border border-slate-300 rounded px-3 py-1.5 bg-white">
+      <option value="">All departments</option>
+      {% for d in departments %}
+        <option value="{{ d.pk }}" {% if department and department.pk == d.pk %}selected{% endif %}>{{ d.name }}</option>
+      {% endfor %}
+    </select>
+    <span class="text-xs text-slate-500">Rescopes readiness, risk, succession, and bottlenecks. What-if simulations and future demand stay org-wide.</span>
+  </form>
+
+  <section class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="font-semibold text-lg">{{ scope_label }} readiness</h2>
+        <p class="text-xs text-slate-500">Critical-skill coverage weighted by criticality; {{ org_score.critical_skills }} critical skill{{ org_score.critical_skills|pluralize }}.</p>
+      </div>
+      <div class="text-right">
+        <span class="text-4xl font-bold {% if org_score.score >= 80 %}text-green-600{% elif org_score.score >= 60 %}text-amber-600{% else %}text-red-600{% endif %}">{{ org_score.score }}</span>
+        <span class="text-slate-500">/100</span>
+      </div>
+    </div>
+
+    {% if not department %}
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {% for row in readiness %}
+        {% if row.department %}
+          <div class="border border-slate-200 rounded-lg p-3">
+            <div class="flex items-center justify-between">
+              <span class="font-medium text-sm">{{ row.department.name }}</span>
+              <span class="font-semibold {% if row.score >= 80 %}text-green-600{% elif row.score >= 60 %}text-amber-600{% else %}text-red-600{% endif %}">{{ row.score }}</span>
+            </div>
+            <p class="text-xs text-slate-500">{{ row.critical_skills }} critical skill{{ row.critical_skills|pluralize }}</p>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if trend_points %}
+      <h3 class="mt-4 text-sm font-semibold text-slate-700 mb-2">Trend ({{ trend_points|length }} snapshot{{ trend_points|length|pluralize }})</h3>
+      <ol class="flex flex-wrap items-end gap-2">
+        {% for point in trend_points %}
+          <li class="flex flex-col items-center">
+            <span class="text-xs text-slate-500">{{ point.snapshot.created_at|date:"d M" }}</span>
+            <span class="inline-block mt-1 px-2 py-1 rounded border
+              {% if point.snapshot.score >= 80 %}bg-green-50 text-green-700 border-green-200
+              {% elif point.snapshot.score >= 60 %}bg-amber-50 text-amber-700 border-amber-200
+              {% else %}bg-red-50 text-red-700 border-red-200{% endif %}">
+              {{ point.snapshot.score }}
+            </span>
+            {% if point.delta is not None %}
+              <span class="text-xs {% if point.delta < 0 %}text-red-600{% elif point.delta > 0 %}text-green-600{% else %}text-slate-400{% endif %}">
+                {% if point.delta > 0 %}+{% endif %}{{ point.delta }}
+              </span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    {% endif %}
+  </section>
+
+  <section class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm mb-6">
+    <h2 class="font-semibold text-lg mb-1">Unresolved team flags</h2>
+    <p class="text-xs text-slate-500 mb-3">Upward flags from team leads, aggregated by issue type.</p>
+    {% if feedback_risks %}
+      <div class="flex flex-wrap items-center gap-3">
+        {% for bucket in feedback_risks %}
+          <div class="border border-slate-200 rounded-lg px-3 py-2">
+            <span class="text-xs px-2 py-0.5 rounded-full
+              {% if bucket.issue_type == 'workforce_shortfall' %}bg-red-100 text-red-700
+              {% elif bucket.issue_type == 'skill_shortfall' %}bg-amber-100 text-amber-700
+              {% else %}bg-slate-100 text-slate-600{% endif %}">
+              {{ bucket.label }}
+            </span>
+            <span class="ml-2 font-semibold">{{ bucket.count }}</span>
+            <ul class="mt-1.5 space-y-0.5 text-xs text-slate-500">
+              {% for flag in bucket.flags %}
+                <li>{{ flag.raised_by }}: {{ flag.description|truncatechars:80 }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+      </div>
+      <p class="mt-3 text-xs"><a href="{% url 'feedback_list' %}" class="text-blue-600 hover:underline">Review and resolve flags →</a></p>
+    {% else %}
+      <p class="text-sm text-slate-500">No unresolved flags — all team feedback is closed.</p>
+    {% endif %}
+  </section>
 
   <div class="grid lg:grid-cols-2 gap-6">
     <section class="space-y-6">
       <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-        <h2 class="font-semibold text-lg">Knowledge bottlenecks</h2>
+        <h2 class="font-semibold text-lg">Knowledge bottlenecks <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
         <p class="text-xs text-slate-500 mb-3">Low bus factor or supply/demand shortfall.</p>
         {% if bottlenecks %}
           <table class="w-full text-sm">
@@ -31,11 +132,15 @@
                     <span class="font-medium">{{ row.skill.name }}</span>
                     {% if row.critical %}<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 ml-1">critical</span>{% endif %}
                   </td>
-                  <td class="py-1.5 pr-3">{{ row.holder_count }}</td>
+                  <td class="py-1.5 pr-3">
+                    {% if row.masked %}<span class="text-amber-700">{{ row.holder_count_display }}</span>{% else %}{{ row.holder_count_display }}{% endif %}
+                  </td>
                   <td class="py-1.5 pr-3">{{ row.demand }}</td>
-                  <td class="py-1.5 pr-3 {% if row.shortfall %}text-red-700 font-medium{% endif %}">{{ row.shortfall }}</td>
+                  <td class="py-1.5 pr-3 {% if row.shortfall and not row.masked %}text-red-700 font-medium{% endif %}">{{ row.shortfall_display }}</td>
                   <td class="py-1.5">
-                    {% if row.low_bus_factor %}
+                    {% if row.masked %}
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">small group &mdash; details masked</span>
+                    {% elif row.low_bus_factor %}
                       <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">bus factor &le; {{ bus_factor_threshold }}</span>
                     {% endif %}
                   </td>
@@ -49,7 +154,7 @@
       </div>
 
       <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-        <h2 class="font-semibold text-lg">Skill depletion</h2>
+        <h2 class="font-semibold text-lg">Skill depletion <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
         <p class="text-xs text-slate-500 mb-3">When a skill could be lost entirely — the last holder's expected leave date.</p>
         {% if depletion %}
           <div class="space-y-4">
@@ -60,7 +165,9 @@
                     <span class="font-medium">{{ row.skill.name }}</span>
                     {% if row.critical %}<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 ml-1">critical</span>{% endif %}
                   </div>
-                  {% if row.unknown %}
+                  {% if row.masked %}
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{{ row.holder_count }} holders &mdash; details masked</span>
+                  {% elif row.unknown %}
                     <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">unclear — some holders have no leave date</span>
                   {% elif row.last_leave_date %}
                     {% if row.months_left %}
@@ -70,14 +177,18 @@
                     {% endif %}
                   {% endif %}
                 </div>
-                <ul class="mt-2 divide-y divide-slate-100 text-sm">
-                  {% for holder in row.holders %}
-                    <li class="py-1.5 flex items-center justify-between">
-                      <span>{{ holder.name }} <span class="text-slate-500">· {{ holder.level }}</span></span>
-                      <span class="text-slate-600">{{ holder.expected_leave_date|default:"no leave date"|date:"M Y" }}</span>
-                    </li>
-                  {% endfor %}
-                </ul>
+                {% if row.masked %}
+                  <p class="mt-2 text-sm text-slate-500">Too few holders to disclose their leave dates — request drill-down approval for detail.</p>
+                {% else %}
+                  <ul class="mt-2 divide-y divide-slate-100 text-sm">
+                    {% for holder in row.holders %}
+                      <li class="py-1.5 flex items-center justify-between">
+                        <span>{{ holder.name }} <span class="text-slate-500">· {{ holder.level }}</span></span>
+                        <span class="text-slate-600">{{ holder.expected_leave_date|default:"no leave date"|date:"M Y" }}</span>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
               </div>
             {% endfor %}
           </div>
@@ -89,7 +200,7 @@
 
     <section class="space-y-6">
       <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-        <h2 class="font-semibold text-lg">Successor readiness</h2>
+        <h2 class="font-semibold text-lg">Successor readiness <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
         <p class="text-xs text-slate-500 mb-3">Top under-qualified holders, estimated months to the required level.</p>
         {% if successors %}
           <div class="space-y-4">
@@ -105,7 +216,7 @@
                 <ul class="mt-2 divide-y divide-slate-100 text-sm">
                   {% for c in entry.candidates %}
                     <li class="py-1.5 flex items-center justify-between">
-                      <span>{{ c.name }} <span class="text-slate-500">· {{ c.level }}</span></span>
+                      <span>{{ c.name_display }} <span class="text-slate-500">· {{ c.level }}</span></span>
                       <span class="text-slate-600">{{ c.gap }} level{{ c.gap|pluralize }}, ~{{ c.months }} mo</span>
                     </li>
                   {% endfor %}
@@ -138,6 +249,236 @@
           <p class="text-sm text-slate-500">No active employees.</p>
         {% endif %}
       </div>
+
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-semibold text-lg">Risk matrix <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
+        <p class="text-xs text-slate-500 mb-3">Skills assessed critical (score &ge; 60) — criticality × rarity.</p>
+        {% if risk_matrix %}
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-slate-500 border-b border-slate-200">
+                <th class="py-1 pr-3">Skill</th>
+                <th class="py-1 pr-3">Dept</th>
+                <th class="py-1 pr-3">Criticality</th>
+                <th class="py-1 pr-3">Rarity</th>
+                <th class="py-1 pr-3">Holders</th>
+                <th class="py-1">Replace</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in risk_matrix %}
+                <tr class="border-b border-slate-100 align-top">
+                  <td class="py-1.5 pr-3 font-medium">{{ row.skill.name }}</td>
+                  <td class="py-1.5 pr-3 text-slate-600">{{ row.department.name }}</td>
+                  <td class="py-1.5 pr-3">
+                    <div class="flex items-center gap-2">
+                      <div class="w-16 h-1.5 rounded bg-slate-100 overflow-hidden">
+                        <div class="h-full {% if row.criticality_score >= 80 %}bg-red-500{% elif row.criticality_score >= 60 %}bg-amber-500{% else %}bg-green-500{% endif %}"
+                             style="width: {{ row.criticality_score }}%"></div>
+                      </div>
+                      <span class="{% if row.criticality_score >= 80 %}text-red-700{% else %}text-amber-700{% endif %} font-medium">{{ row.criticality_score }}</span>
+                    </div>
+                  </td>
+                  <td class="py-1.5 pr-3">
+                    {% if row.masked %}
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">masked</span>
+                      <span class="text-xs text-slate-400">({{ row.rarity_holders }})</span>
+                    {% else %}
+                      <span class="text-xs px-2 py-0.5 rounded-full
+                        {% if row.rarity == 'available' %}bg-green-100 text-green-700
+                        {% elif row.rarity == 'scarce' %}bg-amber-100 text-amber-700
+                        {% else %}bg-red-100 text-red-700{% endif %}">
+                        {{ row.rarity }} ({{ row.rarity_holders }})
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td class="py-1.5 pr-3">{{ row.holder_count }}<span class="text-slate-400"> / {{ row.high_proficiency }} high</span></td>
+                  <td class="py-1.5">{{ row.time_to_replace_months }} mo</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p class="text-sm text-slate-500">No critical skills assessed yet.</p>
+        {% endif %}
+      </div>
     </section>
   </div>
+
+  <section class="mt-6 bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+    <h2 class="font-semibold text-lg mb-1">Succession risk cards <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
+    <p class="text-xs text-slate-500 mb-3">Holder seats backed up by qualified (readiness &ge; {{ successor_ready_bar }}%) or in-pipeline successors.</p>
+    {% if succession_cards %}
+      <div class="grid lg:grid-cols-3 gap-4">
+        {% for card in succession_cards %}
+          <div class="border border-slate-200 rounded-lg p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="font-medium">{{ card.skill.name }}</span>
+                <span class="ml-1 text-xs text-slate-500">{{ card.department.name }}</span>
+              </div>
+              <span class="text-xs px-2 py-0.5 rounded-full {% if card.criticality_score >= 80 %}bg-red-100 text-red-700{% else %}bg-amber-100 text-amber-700{% endif %}">
+                crit {{ card.criticality_score }}
+              </span>
+            </div>
+            <div class="mt-2 flex items-center gap-3 text-sm">
+              <span class="text-2xl font-bold {% if card.coverage_ratio >= 0.8 %}text-green-600{% elif card.coverage_ratio >= 0.5 %}text-amber-600{% else %}text-red-600{% endif %}">
+                {% widthratio card.coverage_ratio 1 100 %}<span class="text-base">%</span>
+              </span>
+              <div>
+                <p class="text-xs text-slate-600">{{ card.holder_count }} holder{{ card.holder_count|pluralize }} · {{ card.qualified_count }} qualified successor{{ card.qualified_count|pluralize }}</p>
+                {% if card.masked %}
+                  <p class="text-xs text-slate-500">small group — successor details masked</p>
+                {% elif card.kt_recommended %}
+                  <p class="text-xs text-red-700 font-medium">single holder — knowledge transfer recommended</p>
+                {% endif %}
+              </div>
+            </div>
+            {% if card.candidates %}
+              <ul class="mt-3 divide-y divide-slate-100 text-sm">
+                {% for c in card.candidates %}
+                  <li class="py-1.5 flex items-center justify-between">
+                    <span>{{ c.name_display }} <span class="text-slate-500">· level {{ c.direct_level }}</span></span>
+                    <span class="text-xs {% if c.ready_today %}text-green-700 font-medium{% else %}text-slate-600{% endif %}">
+                      {{ c.readiness }}%{% if not c.ready_today %} · ~{{ c.months }} mo{% else %} ready now{% endif %}
+                    </span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="mt-3 text-sm text-slate-500">No successors identified yet.</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-sm text-slate-500">No critical skills to back up.</p>
+    {% endif %}
+  </section>
+
+  <section class="mt-6 bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+    <h2 class="font-semibold text-lg mb-1">Future skills</h2>
+    <p class="text-xs text-slate-500 mb-3">Curated demand projections joined against today's scarcity.</p>
+    {% if future_skills %}
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-slate-500 border-b border-slate-200">
+            <th class="py-1 pr-3">Skill</th>
+            <th class="py-1 pr-3">Direction</th>
+            <th class="py-1 pr-3">Importance</th>
+            <th class="py-1 pr-3">Confidence</th>
+            <th class="py-1 pr-3">Holders</th>
+            <th class="py-1">Avg level</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in future_skills %}
+            <tr class="border-b border-slate-100">
+              <td class="py-1.5 pr-3 font-medium">
+                {{ row.skill.name }}
+                {% if row.masked %}
+                  <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 ml-1">small group</span>
+                {% elif row.high_proficiency <= 1 %}
+                  <span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 ml-1">scarce</span>
+                {% endif %}
+              </td>
+              <td class="py-1.5 pr-3 text-slate-600">{{ row.demand.get_direction_display }}</td>
+              <td class="py-1.5 pr-3">{{ row.demand.future_importance }}/5</td>
+              <td class="py-1.5 pr-3">{{ row.confidence }}</td>
+              <td class="py-1.5 pr-3">{{ row.holder_count }}</td>
+              <td class="py-1.5">{{ row.avg_level }}/5</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-sm text-slate-500">No future-demand projections recorded.</p>
+    {% endif %}
+  </section>
+
+  <section class="mt-6 bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+    <h2 class="font-semibold text-lg mb-1">What-if sandbox</h2>
+    <p class="text-xs text-slate-500 mb-4">Read-only simulations to test departure and adoption scenarios.</p>
+    <div class="grid lg:grid-cols-2 gap-6">
+
+      <div>
+        <h3 class="text-sm font-semibold text-slate-700 mb-2">Employee departure</h3>
+        <form method="get" class="flex gap-2 mb-3">
+          {% if department %}<input type="hidden" name="dept" value="{{ department.pk }}">{% endif %}
+          <select name="departure_user_id" class="flex-1 border border-slate-300 rounded px-2 py-1.5 text-sm">
+            {% for u in departure_users %}
+              <option value="{{ u.pk }}" {% if departure_user and u.pk == departure_user.pk %}selected{% endif %}>
+                {{ u.get_full_name|default:u.username }}{% if u.job_title %} · {{ u.job_title }}{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded px-3 py-1.5 text-sm">Simulate</button>
+        </form>
+        {% if departure_impacts %}
+          <ul class="divide-y divide-slate-100 text-sm">
+            {% for impact in departure_impacts %}
+              <li class="py-2">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium">{{ impact.skill.name }}</span>
+                  <span class="text-xs {% if impact.kt_needed %}text-red-700 font-medium{% else %}text-slate-600{% endif %}">
+                    {{ impact.holders_after_display }} holder{{ impact.holders_after_display|pluralize }} after
+                  </span>
+                </div>
+                <div class="flex items-center gap-3 mt-1 text-xs text-slate-600">
+                  <span>
+                    coverage
+                    <span class="{% if impact.coverage_after < impact.coverage_before %}text-red-600{% endif %}">{% widthratio impact.coverage_before 1 100 %}% → {% widthratio impact.coverage_after 1 100 %}%</span>
+                  </span>
+                  {% if impact.masked %}
+                    <span class="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">small group — details masked</span>
+                  {% elif impact.high_proficiency_after <= 1 %}
+                    <span class="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">high-proficiency thin</span>
+                  {% endif %}
+                </div>
+                <p class="mt-0.5 text-xs text-slate-500">{{ impact.recommendation }}</p>
+              </li>
+            {% endfor %}
+          </ul>
+        {% elif departure_user %}
+          <p class="text-sm text-slate-500">No critical-skill impacts for {{ departure_user }} — either they hold no critical skills at holder level, or backups exist.</p>
+        {% else %}
+          <p class="text-sm text-slate-500">Pick an employee to see what happens to critical skills if they leave.</p>
+        {% endif %}
+      </div>
+
+      <div>
+        <h3 class="text-sm font-semibold text-slate-700 mb-2">Skill adoption</h3>
+        <form method="get" class="flex gap-2 mb-3">
+        {% if department %}<input type="hidden" name="dept" value="{{ department.pk }}">{% endif %}
+        <select name="adopt_skill_id" class="flex-1 border border-slate-300 rounded px-2 py-1.5 text-sm">
+            {% for s in adopt_skills %}
+              <option value="{{ s.pk }}" {% if adopt and s.pk == adopt.skill.pk %}selected{% endif %}>{{ s.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded px-3 py-1.5 text-sm">Simulate</button>
+        </form>
+        {% if adopt %}
+          <div class="text-sm space-y-1.5">
+            <p>
+              <span class="font-medium">{{ adopt.skill.name }}</span>
+              <span class="ml-1 text-xs px-2 py-0.5 rounded-full
+                {% if adopt.rarity_label == 'available' %}bg-green-100 text-green-700
+                {% elif adopt.rarity_label == 'scarce' %}bg-amber-100 text-amber-700
+                {% else %}bg-red-100 text-red-700{% endif %}">
+                {{ adopt.rarity_label }} · {{ adopt.holder_count }} holder{{ adopt.holder_count|pluralize }}
+              </span>
+            </p>
+            <p class="text-slate-600">{{ adopt.qualified_count }} qualified at level 3 · {{ adopt.adjacent_pool_size }} in the adjacent-skills pool</p>
+            {% if adopt.adjacent_pool %}
+              <p class="text-slate-600">Fastest to train from: {% for person, _, _ in adopt.adjacent_pool %}<span class="inline-block mr-1 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{{ person.get_full_name|default:person.username }}</span>{% endfor %}</p>
+            {% endif %}
+            <p class="text-slate-600">Estimated ramp: <span class="font-medium">{{ adopt.est_training_months }} months</span>{% if adopt.hiring_recommended %} · <span class="text-amber-700 font-medium">hire recommended</span>{% endif %}</p>
+          </div>
+        {% else %}
+          <p class="text-sm text-slate-500">Pick a skill to test staffing/adoption options.</p>
+        {% endif %}
+      </div>
+
+    </div>
+  </section>
 {% endblock %}

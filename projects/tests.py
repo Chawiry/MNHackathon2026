@@ -123,8 +123,20 @@ class ProjectCoverageSummaryTests(TestCase):
         SkillProficiency.objects.create(
             user=other, skill=self.skill, level=4, status=SkillProficiency.Status.APPROVED
         )
-        TeamSkillRequirement.objects.create(team=self.team, skill=self.skill, required_level=3)
+        TeamSkillRequirement.objects.create(
+            team=self.team, skill=self.skill, required_level=3, people_needed=2
+        )
         response = self.client.get(reverse("project_detail", args=[self.project.pk]))
         content = response.content.decode()
         self.assertIn("Suited candidates", content)
         self.assertIn(other.username, content)
+
+    def test_project_detail_shows_plan_readiness(self):
+        from teams.models import TeamSkillRequirement
+
+        TeamSkillRequirement.objects.create(team=self.team, skill=self.skill, required_level=3)
+        response = self.client.get(reverse("project_detail", args=[self.project.pk]))
+        content = response.content.decode()
+        self.assertIn("Plan readiness", content)
+        self.assertIn("Manning", content)
+        self.assertIn("Diagnosis", content)

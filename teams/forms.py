@@ -30,11 +30,12 @@ class ChangeRoleForm(forms.ModelForm):
 class AddRequirementForm(forms.ModelForm):
     class Meta:
         model = TeamSkillRequirement
-        fields = ("skill", "required_level", "importance", "people_needed")
+        fields = ("skill", "required_level", "importance", "purpose", "people_needed")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["required_level"].choices = SkillProficiency.Level.choices
+        self.fields["purpose"].required = False
 
 
 class CreateMemberForm(forms.Form):

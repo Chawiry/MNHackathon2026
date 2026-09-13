@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}{{ skill.name }} · {{ department.name }} · Team Skills{% endblock %}
+
+{% block content %}
+  <div class="flex items-center justify-between gap-4 mb-1">
+    <h1 class="text-2xl font-semibold">{{ skill.name }} @ {{ department.name }}</h1>
+    <a href="{% url 'criticality_list' %}" class="text-sm text-blue-600 hover:underline">← All skills</a>
+  </div>
+  <p class="text-sm text-slate-600 mb-6">
+    Criticality = business impact (≤40) + strategic relevance (≤20) + time-to-replace (≤20) + concentration risk from live high-proficiency depth (≤20).
+  </p>
+
+  <div class="grid lg:grid-cols-3 gap-6">
+    <section class="lg:col-span-2 space-y-6">
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-4 gap-4">
+          <div>
+            <h2 class="font-semibold">Factor inputs</h2>
+            {% if current %}
+              <p class="text-xs text-slate-500">Latest is v{{ current.version }} (score {{ current.criticality_score }}). Saving appends a new version with the score recomputed from today's proficiency depth.</p>
+            {% else %}
+              <p class="text-xs text-slate-500">No assessment for this business unit yet — saving creates version 1.</p>
+            {% endif %}
+          </div>
+          {% if current %}
+            <span class="text-3xl font-bold shrink-0 {% if current.criticality_score >= 80 %}text-red-600{% elif current.criticality_score >= 60 %}text-amber-600{% else %}text-green-600{% endif %}">{{ current.criticality_score }}</span>
+          {% endif %}
+        </div>
+
+        <form method="post" class="space-y-4 max-w-md">
+          {% csrf_token %}
+          {{ form.as_div }}
+          <p class="text-xs text-slate-500">
+            Live high-proficiency holders (≥4): <span class="font-medium">{{ concentration }}</span>
+            — this drives the concentration-risk component.
+          </p>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">
+            Save factors → recompute
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <aside class="space-y-6">
+      <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-semibold mb-3">Version history</h2>
+        {% if history %}
+          <ul class="divide-y divide-slate-100 text-sm">
+            {% for a in history %}
+              <li class="py-2">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium">v{{ a.version }}</span>
+                  <span class="font-semibold {% if a.criticality_score >= 80 %}text-red-600{% elif a.criticality_score >= 60 %}text-amber-600{% else %}text-green-600{% endif %}">{{ a.criticality_score }}</span>
+                </div>
+                <p class="text-xs text-slate-500">impact {{ a.business_impact }} · strategic {{ a.strategic_relevance }} · {{ a.time_to_replace_months }} mo</p>
+                <p class="text-xs text-slate-400">{{ a.assessed_at|date:"d M Y H:i" }}{% if a.assessed_by %} by {{ a.assessed_by.username }}{% endif %}</p>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-sm text-slate-500">No versions yet.</p>
+        {% endif %}
+      </div>
+    </aside>
+  </div>
+{% endblock %}

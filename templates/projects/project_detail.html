@@ -85,7 +85,7 @@
                 <p class="text-sm text-slate-500 mt-2">No requirements for this team yet.</p>
               {% endif %}
 
-              {% include "teams/_requirements.html" with team=entry.team requirements=entry.requirements candidates=candidates add_requirement_form=add_requirement_form %}
+              {% include "teams/_requirements.html" with team=entry.team requirements=entry.requirements candidates=candidates missing=missing add_requirement_form=add_requirement_form %}
             </div>
           {% endfor %}
         {% else %}
@@ -105,4 +105,67 @@
       </div>
     </aside>
   </div>
+
+  {% if plan_rows %}
+    <section class="mt-8 bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+      <h2 class="text-lg font-semibold mb-1">Plan readiness</h2>
+      <p class="text-xs text-slate-500 mb-3">Manning × qualification × availability per requirement.</p>
+      <div class="grid sm:grid-cols-4 gap-3 mb-4 text-sm">
+        <div class="border border-slate-200 rounded-lg p-3">
+          <span class="block text-xs text-slate-500">Manning</span>
+          <span class="font-semibold text-lg">{{ plan_summary.manning_pct }}%</span>
+        </div>
+        <div class="border border-slate-200 rounded-lg p-3">
+          <span class="block text-xs text-slate-500">Qualification</span>
+          <span class="font-semibold text-lg">{{ plan_summary.qualification_pct }}%</span>
+        </div>
+        <div class="border border-slate-200 rounded-lg p-3">
+          <span class="block text-xs text-slate-500">Availability</span>
+          <span class="font-semibold text-lg">{{ plan_summary.availability_pct }}%</span>
+        </div>
+        <div class="border border-slate-200 rounded-lg p-3">
+          <span class="block text-xs text-slate-500">Readiness</span>
+          <span class="font-semibold text-lg {% if plan_summary.readiness_pct >= 80 %}text-green-600{% elif plan_summary.readiness_pct >= 60 %}text-amber-600{% else %}text-red-600{% endif %}">{{ plan_summary.readiness_pct }}%</span>
+        </div>
+      </div>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-slate-500 border-b border-slate-200">
+            <th class="py-1 pr-3">Team</th>
+            <th class="py-1 pr-3">Skill</th>
+            <th class="py-1 pr-3">Needed</th>
+            <th class="py-1 pr-3">Qualified</th>
+            <th class="py-1 pr-3">Manning</th>
+            <th class="py-1 pr-3">Qual.</th>
+            <th class="py-1 pr-3">Avail.</th>
+            <th class="py-1 pr-3">Readiness</th>
+            <th class="py-1">Diagnosis</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in plan_rows %}
+            <tr class="border-b border-slate-100">
+              <td class="py-1.5 pr-3">{{ row.team }}</td>
+              <td class="py-1.5 pr-3">{{ row.skill }} <span class="text-slate-500">· L{{ row.required_level }}</span></td>
+              <td class="py-1.5 pr-3">{{ row.people_needed }}</td>
+              <td class="py-1.5 pr-3">{{ row.qualified }}/{{ row.roster_size }}</td>
+              <td class="py-1.5 pr-3">{{ row.manning_pct }}%</td>
+              <td class="py-1.5 pr-3">{{ row.qualification_pct }}%</td>
+              <td class="py-1.5 pr-3">{{ row.availability_pct }}%</td>
+              <td class="py-1.5 pr-3 font-medium {% if row.readiness_pct >= 80 %}text-green-700{% elif row.readiness_pct >= 60 %}text-amber-700{% else %}text-red-700{% endif %}">
+                {{ row.readiness_pct }}%
+              </td>
+              <td class="py-1.5">
+                {% if row.diagnosis == "Ready" %}
+                  <span class="text-green-700">{{ row.diagnosis }}</span>
+                {% else %}
+                  <span class="text-amber-700">{{ row.diagnosis }}</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endif %}
 {% endblock %}

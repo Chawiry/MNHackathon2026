@@ -209,6 +209,28 @@ class SelfReportTests(SkillSetupMixin, TestCase):
         self.assertEqual(prof.status, SkillProficiency.Status.APPROVED)
 
 
+class DevelopmentPlanTests(SkillSetupMixin, TestCase):
+    def test_me_page_shows_development_plan_for_gap(self):
+        from teams.models import TeamSkillRequirement
+
+        TeamSkillRequirement.objects.create(
+            team=self.team_a, skill=self.skill, required_level=4
+        )
+        SkillProficiency.objects.create(
+            user=self.emp_a,
+            skill=self.skill,
+            level=1,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        response = self.emp_a_client.get(reverse("my_skills"))
+        self.assertContains(response, "Your development plan")
+        self.assertContains(response, self.skill.name)
+
+    def test_me_page_omits_empty_development_plan(self):
+        response = self.emp_a_client.get(reverse("my_skills"))
+        self.assertNotContains(response, "Your development plan")
+
+
 class CertificateSubmitTests(SkillSetupMixin, TestCase):
     def setUp(self):
         super().setUp()

@@ -4,8 +4,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from accounts.tiers import require_tier
+from insights import services as insights_services
 from teams.models import Team, TeamMembership
-from teams.services import requirement_candidates, team_coverage
+from teams.services import requirement_candidates, requirement_missing, team_coverage
 
 from .forms import AddTeamForm, ProjectCreateForm
 from teams.forms import AddRequirementForm
@@ -45,6 +46,7 @@ def project_detail(request, pk):
     project = get_object_or_404(Project, pk=pk)
     teams = []
     candidates = {}
+    missing = {}
     for team in project.teams.all():
         roster = list(
             team.memberships.select_related("user").order_by("-role", "user__username")
@@ -52,6 +54,7 @@ def project_detail(request, pk):
         requirements = list(team.skill_requirements.select_related("skill"))
         for req in requirements:
             candidates[req.pk] = requirement_candidates(req)
+            missing[req.pk] = requirement_missing(req)
         teams.append(
             {
                 "team": team,
@@ -67,8 +70,11 @@ def project_detail(request, pk):
             "project": project,
             "teams": teams,
             "candidates": candidates,
+            "missing": missing,
             "add_team_form": AddTeamForm(),
             "add_requirement_form": AddRequirementForm(),
+            "plan_rows": insights_services.plan_readiness(project),
+            "plan_summary": insights_services.project_readiness_summary(project),
         },
     )
 

@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from .models import Team, TeamMembership, TeamSkillRequirement
+from .models import Department, Team, TeamMembership, TeamSkillRequirement
+
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ("name", "description")
+    search_fields = ("name",)
 
 
 class TeamMembershipInline(admin.TabularInline):
@@ -10,7 +16,8 @@ class TeamMembershipInline(admin.TabularInline):
 
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ("name", "manager")
+    list_display = ("name", "department", "manager")
+    list_filter = ("department",)
     search_fields = ("name",)
     inlines = [TeamMembershipInline]
 

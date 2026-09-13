@@ -46,6 +46,21 @@ def team_coverage(team):
     return rows
 
 
+def requirement_missing(requirement):
+    """How many more team members are still needed for this requirement."""
+    people_needed = requirement.people_needed or 1
+    member_ids = requirement.team.memberships.values_list("user_id", flat=True)
+    met = (
+        SkillProficiency.objects.filter(
+            status=SkillProficiency.Status.APPROVED,
+            skill_id=requirement.skill_id,
+            user_id__in=member_ids,
+            level__gte=requirement.required_level,
+        ).count()
+    )
+    return max(0, people_needed - met)
+
+
 def requirement_candidates(requirement, limit=5):
     """Org-wide employees competent for a requirement, excluding the team.
 

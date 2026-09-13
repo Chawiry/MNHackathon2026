@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Criticality inputs · Team Skills{% endblock %}
+
+{% block content %}
+  <div class="flex items-center justify-between gap-4 mb-1">
+    <h1 class="text-2xl font-semibold">Criticality inputs</h1>
+    <a href="{% url 'insights' %}" class="text-sm text-blue-600 hover:underline">← Insights</a>
+  </div>
+  <p class="text-sm text-slate-600 mb-6">
+    Edit the factor inputs (business impact, strategic relevance, time to replace)
+    that feed each skill's 0–100 criticality score. Scores are recomputed from live
+    proficiency depth and every save is recorded as a new version.
+  </p>
+
+  <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-slate-500 border-b border-slate-200">
+            <th class="py-2 pr-3">Skill</th>
+            {% for d in departments %}
+              <th class="py-2 pr-3">{{ d.name }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr class="border-b border-slate-100">
+              <td class="py-2 pr-3 font-medium">{{ row.skill.name }}</td>
+              {% for cell, dept in row.cells %}
+                <td class="py-2 pr-3">
+                  {% if cell %}
+                    <span class="inline-block px-2 py-0.5 rounded text-xs font-medium
+                      {% if cell.criticality_score >= 80 %}bg-red-100 text-red-700
+                      {% elif cell.criticality_score >= 60 %}bg-amber-100 text-amber-700
+                      {% else %}bg-slate-100 text-slate-600{% endif %}">
+                      {{ cell.criticality_score }}
+                    </span>
+                  {% else %}
+                    <span class="text-slate-400">—</span>
+                  {% endif %}
+                  <a href="{% url 'criticality_edit' row.skill.pk dept.pk %}"
+                     class="ml-1 text-xs text-blue-600 hover:underline">
+                    {% if cell %}edit{% else %}assess{% endif %}
+                  </a>
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

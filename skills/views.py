@@ -7,6 +7,12 @@ from django.urls import reverse
 
 from accounts.models import Tier
 from accounts.tiers import require_tier, team_member_ids
+from insights import services as insights_services
+from profiles.forms import (
+    DevelopmentActivityForm,
+    ExperienceEntryForm,
+    PerformanceReviewForm,
+)
 
 from .forms import (
     CertificateSubmitForm,
@@ -27,6 +33,7 @@ def me(request):
     certificates = request.user.certificate_awards.select_related(
         "certificate", "recorded_by"
     )
+    gaps = insights_services.employee_gaps(request.user)
     return render(
         request,
         "skills/me.html",
@@ -35,6 +42,18 @@ def me(request):
             "certificates": certificates,
             "self_report_form": SelfReportForm(),
             "certificate_form": CertificateSubmitForm(),
+            "gaps": gaps,
+            "development_plan": insights_services.development_recommendations(
+                request.user, gaps
+            ),
+            "development_activities": request.user.development_activities.select_related(
+                "skill"
+            ),
+            "activity_form": DevelopmentActivityForm(),
+            "experiences": request.user.experience_entries.all(),
+            "experience_form": ExperienceEntryForm(),
+            "reviews": request.user.performance_reviews.all(),
+            "review_form": PerformanceReviewForm(),
         },
     )
 

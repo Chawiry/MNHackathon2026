@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "accounts",
     "teams",
     "skills",
+    "profiles",
     "projects",
     "core",
     "insights",

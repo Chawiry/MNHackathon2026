@@ -7,7 +7,7 @@ from django.urls import reverse
 from accounts.models import Tier, User
 from accounts.tiers import manages_team, require_tier
 from skills.forms import RecordCertificateForm, RecordSkillForm
-from .services import requirement_candidates, team_coverage
+from .services import requirement_candidates, requirement_missing, team_coverage
 
 from teams.models import Team, TeamMembership, TeamSkillRequirement
 
@@ -39,6 +39,7 @@ def team_list(request):
     coverage = {team.id: team_coverage(team) for team in managed_teams}
 
     candidates = {}
+    missing = {}
     teams_data = []
     for team in managed_teams:
         roster = list(
@@ -47,6 +48,7 @@ def team_list(request):
         requirements = list(team.skill_requirements.select_related("skill"))
         for req in requirements:
             candidates[req.pk] = requirement_candidates(req)
+            missing[req.pk] = requirement_missing(req)
         teams_data.append(
             {
                 "team": team,
@@ -64,6 +66,7 @@ def team_list(request):
         "record_skill_form": RecordSkillForm(),
         "record_certificate_form": RecordCertificateForm(),
         "candidates": candidates,
+        "missing": missing,
         "profile": request.user,
     }
     return render(request, "teams/teams.html", context)

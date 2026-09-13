@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} · Team Skills{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl font-semibold mb-4">Couldn't save your {{ title|lower }}</h1>
+  <section class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm max-w-xl">
+    <p class="text-sm text-slate-600 mb-3">Please fix the highlighted fields.</p>
+    {{ form.errors.as_ul }}
+  </section>
+  <a href="{% url 'my_skills' %}" class="inline-block mt-4 text-sm text-blue-600 hover:underline">
+    Back to my profile
+  </a>
+{% endblock %}

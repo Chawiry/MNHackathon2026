@@ -41,7 +41,9 @@ Models implemented across four Django apps. Features build against these.
 - **Gig allocation**: for each requirement, `requirement_candidates(req)` suggests org-wide
   approved employees at/above the required level — excluding the team itself — ranked by level,
   fewest team memberships, recency (capped ~5). `add_candidate` assigns a chosen candidate as a
-  team member in one click (managers for managed teams, leadership for any team).
+  team member in one click (managers for managed teams, leadership for any team). Suggestions
+  are only shown while the requirement still has unmet spots
+  (`requirement_missing` = `people_needed` − qualifying team members).
 - **Critical skills**: derived, not stored — from `TeamSkillRequirement` on teams for active
   projects where `importance = critical`, combined with coverage/concentration computed over
   approved `SkillProficiency` rows.

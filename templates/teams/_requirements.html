@@ -17,6 +17,9 @@
                 {% else %}bg-slate-100 text-slate-600{% endif %}">
                 {{ req.get_importance_display }}
               </span>
+              {% if req.purpose == 'promotion' %}
+                <span class="ml-1 text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">next position</span>
+              {% endif %}
             </div>
             <form method="post" action="{% url 'remove_team_requirement' req.pk %}">
               {% csrf_token %}
@@ -24,8 +27,8 @@
               <button type="submit" class="text-xs text-red-600 hover:underline">Remove</button>
             </form>
           </div>
-          {% with suited=candidates|get_item:req.pk %}
-            {% if suited %}
+          {% with suited=candidates|get_item:req.pk spare=missing|get_item:req.pk %}
+            {% if suited and spare %}
               <p class="mt-1.5 text-xs text-slate-600">Suited candidates:
                 {% for candidate in suited %}
                   <span class="inline-flex items-center gap-1">
@@ -64,6 +67,10 @@
     <div>
       <label class="text-xs text-slate-600">Importance</label>
       {{ add_requirement_form.importance }}
+    </div>
+    <div>
+      <label class="text-xs text-slate-600">Purpose</label>
+      {{ add_requirement_form.purpose }}
     </div>
     <div>
       <label class="text-xs text-slate-600">People needed</label>
