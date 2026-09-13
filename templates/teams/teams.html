@@ -32,12 +32,12 @@
                         <option value="manager" {% if membership.role == 'manager' %}selected{% endif %}>Manager</option>
                         <option value="member" {% if membership.role == 'member' %}selected{% endif %}>Member</option>
                       </select>
-                      <button type="submit" class="text-xs text-blue-600 hover:underline">Set</button>
+                      <button type="submit" class="btn-link text-xs">Set</button>
                     </form>
                     <form method="post" action="{% url 'remove_member' membership.pk %}"
                           onsubmit="return confirm('Remove {{ membership.user.username }} from {{ entry.team.name }}?');">
                       {% csrf_token %}
-                      <button type="submit" class="text-xs text-red-600 hover:underline">Remove</button>
+                      <button type="submit" class="btn-link btn-link-danger text-xs">Remove</button>
                     </form>
                   </div>
                 </li>
@@ -46,7 +46,8 @@
 
             <h3 class="mt-4 text-sm font-semibold text-slate-700">Skill coverage vs requirements</h3>
             {% if entry.coverage_rows %}
-              <table class="mt-2 w-full text-sm">
+              <div class="table-wrap">
+<table class="table mt-2">
                 <thead>
                   <tr class="text-left text-slate-500 border-b border-slate-200">
                     <th class="py-1 pr-3">Skill</th>
@@ -70,17 +71,18 @@
                       </td>
                       <td class="py-1.5">
                         {% if row.coverage_status == 'Met' %}
-                          <span class="text-green-700">Met</span>
+                          <span class="inline-flex items-center gap-1.5 text-green-700"><span class="w-2 h-2 rounded-full bg-green-600"></span>Met</span>
                         {% elif row.coverage_status == 'Partial' %}
-                          <span class="text-amber-700">Partial</span>
+                          <span class="inline-flex items-center gap-1.5 text-amber-700"><span class="w-2 h-2 rounded-full bg-amber-500"></span>Partial</span>
                         {% else %}
-                          <span class="text-red-700">Gap</span>
+                          <span class="inline-flex items-center gap-1.5 text-red-700"><span class="w-2 h-2 rounded-full bg-red-600"></span>Gap</span>
                         {% endif %}
                       </td>
                     </tr>
                   {% endfor %}
                 </tbody>
               </table>
+</div>
             {% else %}
               <p class="text-sm text-slate-500 mt-2">No requirements yet.</p>
             {% endif %}
@@ -89,7 +91,7 @@
           </div>
         {% endfor %}
       {% else %}
-        <p class="text-slate-600">You're not managing any teams yet. Leadership creates project teams; once added as a team manager, you'll curate that team here.</p>
+        {% include "components/empty_state.html" with icon="◇" title="No teams yet" body="Leadership creates project teams; once added as a team manager, you'll curate that team here." %}
       {% endif %}
     </section>
 
@@ -101,7 +103,7 @@
         <form method="post" action="{% url 'add_member' %}" class="space-y-3">
           {% csrf_token %}
           {{ add_member_form.as_div }}
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Add member</button>
+          <button type="submit" class="btn btn-primary">Add member</button>
         </form>
       </div>
 
@@ -117,7 +119,7 @@
             <div>{{ create_member_form.team.label_tag }}{{ create_member_form.team }}</div>
             <div class="col-span-2">{{ create_member_form.password.label_tag }}{{ create_member_form.password }}</div>
           </div>
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Create and add</button>
+          <button type="submit" class="btn btn-primary">Create and add</button>
         </form>
       </div>
 
@@ -126,7 +128,7 @@
         <form method="post" action="{% url 'record_skill' %}" class="space-y-3">
           {% csrf_token %}
           {{ record_skill_form.as_div }}
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Record (auto-approved)</button>
+          <button type="submit" class="btn btn-primary">Record (auto-approved)</button>
         </form>
       </div>
 
@@ -135,7 +137,7 @@
         <form method="post" action="{% url 'record_certificate' %}" class="space-y-3">
           {% csrf_token %}
           {{ record_certificate_form.as_div }}
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Record (auto-approved)</button>
+          <button type="submit" class="btn btn-primary">Record (auto-approved)</button>
         </form>
       </div>
       {% endif %}

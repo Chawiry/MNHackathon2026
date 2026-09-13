@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Insights · Team Skills{% endblock %}
 
@@ -37,8 +38,17 @@
         <p class="text-xs text-slate-500">Critical-skill coverage weighted by criticality; {{ org_score.critical_skills }} critical skill{{ org_score.critical_skills|pluralize }}.</p>
       </div>
       <div class="text-right">
-        <span class="text-4xl font-bold {% if org_score.score >= 80 %}text-green-600{% elif org_score.score >= 60 %}text-amber-600{% else %}text-red-600{% endif %}">{{ org_score.score }}</span>
-        <span class="text-slate-500">/100</span>
+        <div class="flex items-center justify-end gap-4">
+          <canvas id="readiness-gauge" class="hint-chart"
+                  data-score="{{ org_score.score }}"
+                  data-threshold="60"
+                  aria-label="Readiness score {{ org_score.score }} out of 100"
+                  role="img"></canvas>
+          <div>
+            <span class="text-4xl font-bold {% if org_score.score >= 80 %}text-green-600{% elif org_score.score >= 60 %}text-amber-600{% else %}text-red-600{% endif %}">{{ org_score.score }}</span>
+            <span class="text-slate-500">/100</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -51,7 +61,12 @@
               <span class="font-medium text-sm">{{ row.department.name }}</span>
               <span class="font-semibold {% if row.score >= 80 %}text-green-600{% elif row.score >= 60 %}text-amber-600{% else %}text-red-600{% endif %}">{{ row.score }}</span>
             </div>
-            <p class="text-xs text-slate-500">{{ row.critical_skills }} critical skill{{ row.critical_skills|pluralize }}</p>
+            <div class="mt-2 h-1.5 rounded bg-slate-100 overflow-hidden">
+              <div class="h-full {% if row.score >= 80 %}bg-green-500{% elif row.score >= 60 %}bg-amber-500{% else %}bg-red-500{% endif %}"
+                   role="progressbar" aria-valuenow="{{ row.score }}" aria-valuemin="0" aria-valuemax="100"
+                   style="width: {{ row.score }}%"></div>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">{{ row.critical_skills }} critical skill{{ row.critical_skills|pluralize }}</p>
           </div>
         {% endif %}
       {% endfor %}
@@ -60,6 +75,9 @@
 
     {% if trend_points %}
       <h3 class="mt-4 text-sm font-semibold text-slate-700 mb-2">Trend ({{ trend_points|length }} snapshot{{ trend_points|length|pluralize }})</h3>
+      <canvas id="trend-chart" height="150" aria-label="Readiness score over time" role="img"></canvas>
+      {{ trend_chart|json_script:"trend-chart-data" }}
+      <noscript>
       <ol class="flex flex-wrap items-end gap-2">
         {% for point in trend_points %}
           <li class="flex flex-col items-center">
@@ -71,13 +89,14 @@
               {{ point.snapshot.score }}
             </span>
             {% if point.delta is not None %}
-              <span class="text-xs {% if point.delta < 0 %}text-red-600{% elif point.delta > 0 %}text-green-600{% else %}text-slate-400{% endif %}">
+              <span class="text-xs {% if point.delta < 0 %}text-red-600{% elif point.delta > 0 %}text-green-600{% else %}text-slate-500{% endif %}">
                 {% if point.delta > 0 %}+{% endif %}{{ point.delta }}
               </span>
             {% endif %}
           </li>
         {% endfor %}
       </ol>
+      </noscript>
     {% endif %}
   </section>
 
@@ -115,7 +134,8 @@
         <h2 class="font-semibold text-lg">Knowledge bottlenecks <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
         <p class="text-xs text-slate-500 mb-3">Low bus factor or supply/demand shortfall.</p>
         {% if bottlenecks %}
-          <table class="w-full text-sm">
+          <div class="table-wrap">
+<table class="table">
             <thead>
               <tr class="text-left text-slate-500 border-b border-slate-200">
                 <th class="py-1 pr-3">Skill</th>
@@ -148,6 +168,7 @@
               {% endfor %}
             </tbody>
           </table>
+</div>
         {% else %}
           <p class="text-sm text-slate-500">No current bottlenecks.</p>
         {% endif %}
@@ -240,7 +261,7 @@
                 {% if row.months_remaining is not None %}
                   <span class="text-slate-600">{{ row.months_remaining }} months left ({{ row.expected_leave_date|date:"M Y" }})</span>
                 {% else %}
-                  <span class="text-slate-400">no expected leave date</span>
+                  <span class="text-slate-500">no expected leave date</span>
                 {% endif %}
               </li>
             {% endfor %}
@@ -254,7 +275,10 @@
         <h2 class="font-semibold text-lg">Risk matrix <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
         <p class="text-xs text-slate-500 mb-3">Skills assessed critical (score &ge; 60) — criticality × rarity.</p>
         {% if risk_matrix %}
-          <table class="w-full text-sm">
+          <canvas id="risk-chart" class="hint-chart" height="150" aria-label="Critical skills ranked by criticality score" role="img"></canvas>
+          {{ risk_chart|json_script:"risk-chart-data" }}
+          <div class="table-wrap">
+<table class="table">
             <thead>
               <tr class="text-left text-slate-500 border-b border-slate-200">
                 <th class="py-1 pr-3">Skill</th>
@@ -282,7 +306,7 @@
                   <td class="py-1.5 pr-3">
                     {% if row.masked %}
                       <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">masked</span>
-                      <span class="text-xs text-slate-400">({{ row.rarity_holders }})</span>
+                      <span class="text-xs text-slate-500">({{ row.rarity_holders }})</span>
                     {% else %}
                       <span class="text-xs px-2 py-0.5 rounded-full
                         {% if row.rarity == 'available' %}bg-green-100 text-green-700
@@ -292,12 +316,13 @@
                       </span>
                     {% endif %}
                   </td>
-                  <td class="py-1.5 pr-3">{{ row.holder_count }}<span class="text-slate-400"> / {{ row.high_proficiency }} high</span></td>
+                  <td class="py-1.5 pr-3">{{ row.holder_count }}<span class="text-slate-500"> / {{ row.high_proficiency }} high</span></td>
                   <td class="py-1.5">{{ row.time_to_replace_months }} mo</td>
                 </tr>
               {% endfor %}
             </tbody>
           </table>
+</div>
         {% else %}
           <p class="text-sm text-slate-500">No critical skills assessed yet.</p>
         {% endif %}
@@ -360,7 +385,8 @@
     <h2 class="font-semibold text-lg mb-1">Future skills</h2>
     <p class="text-xs text-slate-500 mb-3">Curated demand projections joined against today's scarcity.</p>
     {% if future_skills %}
-      <table class="w-full text-sm">
+      <div class="table-wrap">
+<table class="table">
         <thead>
           <tr class="text-left text-slate-500 border-b border-slate-200">
             <th class="py-1 pr-3">Skill</th>
@@ -391,6 +417,7 @@
           {% endfor %}
         </tbody>
       </table>
+</div>
     {% else %}
       <p class="text-sm text-slate-500">No future-demand projections recorded.</p>
     {% endif %}
@@ -412,9 +439,11 @@
               </option>
             {% endfor %}
           </select>
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded px-3 py-1.5 text-sm">Simulate</button>
+          <button type="submit" class="btn btn-primary btn-sm">Simulate</button>
         </form>
         {% if departure_impacts %}
+          <canvas id="departure-chart" class="hint-chart" height="120" aria-label="Critical coverage before and after departure" role="img"></canvas>
+          {{ departure_chart|json_script:"departure-chart-data" }}
           <ul class="divide-y divide-slate-100 text-sm">
             {% for impact in departure_impacts %}
               <li class="py-2">
@@ -455,7 +484,7 @@
               <option value="{{ s.pk }}" {% if adopt and s.pk == adopt.skill.pk %}selected{% endif %}>{{ s.name }}</option>
             {% endfor %}
           </select>
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded px-3 py-1.5 text-sm">Simulate</button>
+          <button type="submit" class="btn btn-primary btn-sm">Simulate</button>
         </form>
         {% if adopt %}
           <div class="text-sm space-y-1.5">
@@ -481,4 +510,9 @@
 
     </div>
   </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script defer src="{% static 'insights.js' %}"></script>
 {% endblock %}

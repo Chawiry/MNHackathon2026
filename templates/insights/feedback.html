@@ -18,7 +18,7 @@
         {% csrf_token %}
         {{ raise_form.as_div }}
         <div class="flex items-center justify-end">
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2 text-sm">
+          <button type="submit" class="btn btn-primary">
             Raise flag
           </button>
         </div>
@@ -61,7 +61,7 @@
               {% csrf_token %}
               {{ resolve_form.as_div }}
               <div class="flex items-center justify-end">
-                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white rounded px-4 py-2 text-sm">
+                <button type="submit" class="btn btn-success">
                   Resolve flag
                 </button>
               </div>

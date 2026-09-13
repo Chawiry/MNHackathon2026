@@ -1,0 +1,6 @@
+{% load ui_tags %}
+{% if tone %}
+  <span class="badge badge-{{ tone }}{% if class %} {{ class }}{% endif %}">{{ label }}</span>
+{% else %}
+  <span class="badge badge-{{ value|threshold_tone }}{% if class %} {{ class }}{% endif %}">{{ label }}</span>
+{% endif %}

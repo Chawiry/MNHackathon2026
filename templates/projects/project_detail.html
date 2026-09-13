@@ -24,7 +24,7 @@
                 <form method="post" action="{% url 'remove_team' entry.team.pk %}"
                       onsubmit="return confirm('Remove team {{ entry.team.name }} from this project? Members are removed from the team.');">
                   {% csrf_token %}
-                  <button type="submit" class="text-xs text-red-600 hover:underline">Remove team</button>
+                  <button type="submit" class="btn-link btn-link-danger text-xs">Remove team</button>
                 </form>
               </div>
 
@@ -46,7 +46,8 @@
 
               <h4 class="mt-4 text-sm font-semibold text-slate-700">Coverage vs requirements</h4>
               {% if entry.coverage_rows %}
-                <table class="mt-2 w-full text-sm">
+                <div class="table-wrap">
+<table class="table mt-2">
                   <thead>
                     <tr class="text-left text-slate-500 border-b border-slate-200">
                       <th class="py-1 pr-3">Skill</th>
@@ -81,6 +82,7 @@
                     {% endfor %}
                   </tbody>
                 </table>
+</div>
               {% else %}
                 <p class="text-sm text-slate-500 mt-2">No requirements for this team yet.</p>
               {% endif %}
@@ -100,7 +102,7 @@
         <form method="post" action="{% url 'add_team' project.pk %}" class="space-y-3">
           {% csrf_token %}
           {{ add_team_form.as_div }}
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Add team</button>
+          <button type="submit" class="btn btn-primary">Add team</button>
         </form>
       </div>
     </aside>
@@ -128,7 +130,8 @@
           <span class="font-semibold text-lg {% if plan_summary.readiness_pct >= 80 %}text-green-600{% elif plan_summary.readiness_pct >= 60 %}text-amber-600{% else %}text-red-600{% endif %}">{{ plan_summary.readiness_pct }}%</span>
         </div>
       </div>
-      <table class="w-full text-sm">
+      <div class="table-wrap">
+<table class="table">
         <thead>
           <tr class="text-left text-slate-500 border-b border-slate-200">
             <th class="py-1 pr-3">Team</th>
@@ -166,6 +169,7 @@
           {% endfor %}
         </tbody>
       </table>
+</div>
     </section>
   {% endif %}
 {% endblock %}

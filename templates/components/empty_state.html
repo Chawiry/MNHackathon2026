@@ -1,0 +1,6 @@
+<div class="empty-state{% if class %} {{ class }}{% endif %}">
+  {% if icon %}<div class="empty-icon">{{ icon }}</div>{% endif %}
+  {% if title %}<p class="empty-state-title">{{ title }}</p>{% endif %}
+  {% if body %}<p class="empty-state-body">{{ body }}</p>{% endif %}
+  {% if action %}<div class="mt-2">{{ action }}</div>{% endif %}
+</div>

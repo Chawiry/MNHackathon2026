@@ -35,7 +35,7 @@
             Live high-proficiency holders (≥4): <span class="font-medium">{{ concentration }}</span>
             — this drives the concentration-risk component.
           </p>
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">
+          <button type="submit" class="btn btn-primary">
             Save factors → recompute
           </button>
         </form>
@@ -54,7 +54,7 @@
                   <span class="font-semibold {% if a.criticality_score >= 80 %}text-red-600{% elif a.criticality_score >= 60 %}text-amber-600{% else %}text-green-600{% endif %}">{{ a.criticality_score }}</span>
                 </div>
                 <p class="text-xs text-slate-500">impact {{ a.business_impact }} · strategic {{ a.strategic_relevance }} · {{ a.time_to_replace_months }} mo</p>
-                <p class="text-xs text-slate-400">{{ a.assessed_at|date:"d M Y H:i" }}{% if a.assessed_by %} by {{ a.assessed_by.username }}{% endif %}</p>
+                <p class="text-xs text-slate-500">{{ a.assessed_at|date:"d M Y H:i" }}{% if a.assessed_by %} by {{ a.assessed_by.username }}{% endif %}</p>
               </li>
             {% endfor %}
           </ul>

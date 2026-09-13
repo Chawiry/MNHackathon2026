@@ -87,7 +87,7 @@
             {% endfor %}
           </ul>
         {% else %}
-          <p class="text-sm text-slate-500">No skills recorded yet. Add one below.</p>
+          {% include "components/empty_state.html" with icon="◇" title="No skills recorded" body="Self-assess a skill below to start building your profile." %}
         {% endif %}
       </div>
 
@@ -96,7 +96,7 @@
         <form method="post" action="{% url 'self_assess' %}" class="space-y-4">
           {% csrf_token %}
           {{ self_report_form.as_div }}
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">
+          <button type="submit" class="btn btn-primary">
             Submit for approval
           </button>
         </form>
@@ -131,7 +131,7 @@
         <form method="post" action="{% url 'add_activity' %}" class="space-y-3">
           {% csrf_token %}
           {{ activity_form.as_div }}
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Add activity</button>
+          <button type="submit" class="btn btn-primary">Add activity</button>
         </form>
       </div>
     </section>
@@ -164,7 +164,7 @@
             {% endfor %}
           </ul>
         {% else %}
-          <p class="text-sm text-slate-500">No certificates yet.</p>
+          {% include "components/empty_state.html" with icon="◇" title="No certificates yet" body="Submit a certificate to back a skill rating with proof." %}
         {% endif %}
       </div>
 
@@ -173,7 +173,7 @@
         <form method="post" action="{% url 'submit_certificate' %}" class="space-y-4">
           {% csrf_token %}
           {{ certificate_form.as_div }}
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">
+          <button type="submit" class="btn btn-primary">
             Submit for approval
           </button>
         </form>
@@ -200,7 +200,7 @@
         <form method="post" action="{% url 'add_experience' %}" class="space-y-3">
           {% csrf_token %}
           {{ experience_form.as_div }}
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Add experience</button>
+          <button type="submit" class="btn btn-primary">Add experience</button>
         </form>
       </div>
 
@@ -218,7 +218,7 @@
                     </span>
                   {% endif %}
                   {% if review.reviewed_at %}
-                    <span class="text-xs text-slate-400">· {{ review.reviewed_at|date:"M Y" }}</span>
+                    <span class="text-xs text-slate-500">· {{ review.reviewed_at|date:"M Y" }}</span>
                   {% endif %}
                 </p>
                 {% if review.achievements %}<p class="text-xs text-slate-600 mt-0.5"><span class="font-medium">Achievements:</span> {{ review.achievements }}</p>{% endif %}
@@ -233,7 +233,7 @@
         <form method="post" action="{% url 'add_review' %}" class="space-y-3">
           {% csrf_token %}
           {{ review_form.as_div }}
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">Add review</button>
+          <button type="submit" class="btn btn-primary">Add review</button>
         </form>
       </div>
     </section>

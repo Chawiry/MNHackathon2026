@@ -17,7 +17,7 @@
       {% csrf_token %}
       {{ create_form.as_div }}
       <div class="sm:col-span-2 flex items-center justify-end">
-        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2 text-sm">
+        <button type="submit" class="btn btn-primary">
           Draft initiative
         </button>
       </div>
@@ -78,13 +78,13 @@
             {% if initiative.status != 'approved' %}
               <form method="post" action="{% url 'initiative_generate' initiative.pk %}">
                 {% csrf_token %}
-                <button class="text-sm border border-slate-300 rounded px-3 py-1.5 text-slate-700 hover:bg-slate-50">
+                <button class="btn btn-ghost btn-sm">
                   Regenerate draft
                 </button>
               </form>
               <form method="post" action="{% url 'initiative_approve' initiative.pk %}">
                 {% csrf_token %}
-                <button class="text-sm bg-green-600 hover:bg-green-700 text-white rounded px-3 py-1.5"
+                <button class="btn btn-success btn-sm"
                         {% if not initiative.ai_draft_content %}disabled title="Generate a draft first"{% endif %}>
                   Approve
                 </button>
@@ -96,7 +96,7 @@
                 <input type="text" name="title" value="{{ row.next_title }}"
                        placeholder="Child plan title" class="text-sm border border-slate-300 rounded px-2 py-1.5"
                        aria-label="Child plan title">
-                <button class="text-sm bg-blue-600 hover:bg-blue-700 text-white rounded px-3 py-1.5">
+                <button class="btn btn-primary btn-sm">
                   Cascade to {{ row.next_label }} ↓
                 </button>
               </form>

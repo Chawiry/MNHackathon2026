@@ -34,7 +34,7 @@
                 <span class="text-green-700">{{ entry.summary.met }} met</span>
                 <span class="text-amber-700">{{ entry.summary.partial }} partial</span>
                 <span class="text-red-700">{{ entry.summary.gap }} gap</span>
-                <span class="text-slate-400">requirements across teams</span>
+                <span class="text-slate-500">requirements across teams</span>
               </div>
             {% endif %}
             {% if entry.project.teams.all %}
@@ -57,7 +57,7 @@
         <form method="post" action="{% url 'create_project' %}" class="space-y-3">
           {% csrf_token %}
           {{ create_form.as_div }}
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm">
+          <button type="submit" class="btn btn-primary">
             Create project + team
           </button>
         </form>

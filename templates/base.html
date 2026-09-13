@@ -1,13 +1,14 @@
 {% load static %}
+{% load ui_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Team Skills{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f63e9'/%3E%3Ctext x='16' y='21' font-family='Segoe UI,Arial,sans-serif' font-size='13' font-weight='700' fill='white' text-anchor='middle'%3ETS%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="{% static 'app.css' %}">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
   <script defer src="https://unpkg.com/alpinejs@3.14.8"></script>
 </head>
 <body class="min-h-screen">
@@ -18,45 +19,196 @@
         <span class="brand-mark">TS</span>
         <span>Team Skills<small>PEOPLE, SKILLS, MOMENTUM</small></span>
       </a>
-      <nav class="sidebar-nav">
-        <a href="{% url 'home' %}" class="sidebar-link active">Overview</a>
-        <a href="{% url 'my_skills' %}" class="sidebar-link">Skills inventory</a>
+      <nav class="sidebar-nav" aria-label="Main">
+
         {% if user.tier == 'team_manager' or user.tier == 'leadership' %}
-          <a href="{% url 'team_list' %}" class="sidebar-link">Teams</a>
-          <a href="{% url 'approvals' %}" class="sidebar-link">Approvals</a>
+        <p class="nav-section">Workspace</p>
         {% endif %}
+
+        {% nav_active request 'home' as active_home %}
+        <a href="{% url 'home' %}" class="sidebar-link{% if active_home %} active{% endif %}"{% if active_home %} aria-current="page"{% endif %}>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5V19a1 1 0 0 0 1 1h5v-5h6v5h5a1 1 0 0 0 1-1v-8.5"/><path d="M3 10.5 12 3l9 7.5"/></svg>
+          </span>
+          Overview
+        </a>
+
+        {% nav_active request 'my_skills' as active_skills %}
+        <a href="{% url 'my_skills' %}" class="sidebar-link{% if active_skills %} active{% endif %}"{% if active_skills %} aria-current="page"{% endif %}>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 12.5l10 5 10-5"/><path d="M2 17.5l10 5 10-5"/></svg>
+          </span>
+          Skills inventory
+        </a>
+
+        {% if user.tier == 'team_manager' or user.tier == 'leadership' %}
+        <p class="nav-section">Management</p>
+
+        {% if user.tier == 'team_manager' %}
+        {% nav_active request 'team_list' as active_teams %}
+        <a href="{% url 'team_list' %}" class="sidebar-link{% if active_teams %} active{% endif %}"{% if active_teams %} aria-current="page"{% endif %}>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 19c0-3 2.9-5 6.5-5s6.5 2 6.5 5"/><path d="M15.5 4.7a3.5 3.5 0 0 1 0 6.6"/><path d="M17.5 14c2.3.4 4 2.2 4 5"/></svg>
+          </span>
+          Teams
+        </a>
+        {% endif %}
+
+        {% nav_active request 'approvals' as active_approvals %}
+        <a href="{% url 'approvals' %}" class="sidebar-link{% if active_approvals %} active{% endif %}"{% if active_approvals %} aria-current="page"{% endif %}>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.5 2.5L16 9.5"/></svg>
+          </span>
+          Approvals
+          {% if pending_approval_count %}
+            <span class="nav-count" aria-label="{{ pending_approval_count }} pending">{{ pending_approval_count }}</span>
+          {% endif %}
+        </a>
+
+        {% if user.tier == 'team_manager' %}
+        {% nav_active request 'feedback_list' as active_feedback %}
+        <a href="{% url 'feedback_list' %}" class="sidebar-link{% if active_feedback %} active{% endif %}"{% if active_feedback %} aria-current="page"{% endif %}>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h11l-2.5 3.5L16 11H5"/></svg>
+          </span>
+          Team feedback
+        </a>
+        {% endif %}
+        {% endif %}
+
         {% if user.tier == 'leadership' %}
-          <a href="{% url 'project_list' %}" class="sidebar-link">Projects</a>
-          <a href="{% url 'user_list' %}" class="sidebar-link">People</a>
+        <p class="nav-section">Leadership</p>
+
+        {% nav_active request 'project_list' 'project_detail' as active_projects %}
+        <a href="{% url 'project_list' %}" class="sidebar-link{% if active_projects %} active{% endif %}"{% if active_projects %} aria-current="page"{% endif %}>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+          </span>
+          Projects
+        </a>
+
+        {% nav_active request 'user_list' 'create_user' as active_people %}
+        <a href="{% url 'user_list' %}" class="sidebar-link{% if active_people %} active{% endif %}"{% if active_people %} aria-current="page"{% endif %}>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.5" r="3.5"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+          </span>
+          People
+        </a>
+
+        <p class="nav-section">Insights</p>
+
+        {% nav_active request 'insights' 'criticality_list' 'criticality_edit' 'cascade_list' 'feedback_list' as active_insights %}
+        <a href="{% url 'insights' %}" class="sidebar-link{% if active_insights %} active{% endif %}"{% if active_insights %} aria-current="page"{% endif %}>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20v-9"/><path d="M10 20V4"/><path d="M16 20v-6"/><path d="M21 20H3"/></svg>
+          </span>
+          Org insights
+        </a>
+        <div class="sidebar-sub">
+          {% nav_active request 'insights' as active_insights_dash %}
+          <a href="{% url 'insights' %}" class="sidebar-link sub{% if active_insights_dash %} active{% endif %}">Dashboard</a>
+          {% nav_active request 'criticality_list' 'criticality_edit' as active_crit %}
+          <a href="{% url 'criticality_list' %}" class="sidebar-link sub{% if active_crit %} active{% endif %}">Criticality</a>
+          {% nav_active request 'cascade_list' as active_cascade %}
+          <a href="{% url 'cascade_list' %}" class="sidebar-link sub{% if active_cascade %} active{% endif %}">Leadership cascade</a>
+          {% nav_active request 'feedback_list' as active_fb %}
+          <a href="{% url 'feedback_list' %}" class="sidebar-link sub{% if active_fb %} active{% endif %}">Team feedback</a>
+        </div>
         {% endif %}
+
       </nav>
       <div class="sidebar-footer">Team Skills workspace</div>
     </aside>
 
-    <div class="app-content">
+    <div class="app-content" x-data="{
+      open: false,
+      q: '',
+      results: { users: [], skills: [], teams: [], projects: [] },
+      suggestOpen: false,
+      hasAny() { return Object.values(this.results).some(g => g.length) },
+      search() {
+        const q = this.q.trim();
+        if (q.length < 2) { this.results = { users: [], skills: [], teams: [], projects: [] }; this.suggestOpen = false; return; }
+        fetch('/search/?format=json&q=' + encodeURIComponent(q))
+          .then(r => r.json())
+          .then(d => { this.results = d.results || { users: [], skills: [], teams: [], projects: [] }; this.suggestOpen = this.hasAny(); });
+      }
+    }">
       <header class="topbar">
-        <div class="search-box">Search skills, people, teams, or insights...</div>
+        <button class="menu-toggle" @click="open = !open" aria-label="Toggle navigation" aria-expanded="false" :aria-expanded="open ? 'true' : 'false'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+
+        <div class="search-wrap">
+          <form action="{% url 'search' %}" method="get" role="search">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>
+            <label class="sr-only" for="search-input">Search</label>
+            <input type="search" name="q" id="search-input" placeholder="Search people, skills, teams…"
+                   autocomplete="off" aria-autocomplete="list" x-model="q"
+                   @input.debounce.250ms="search()"
+                   @focus="suggestOpen = this.q.trim().length >= 2 && hasAny()"
+                   @click="suggestOpen = this.q.trim().length >= 2 && hasAny()">
+            <noscript><button type="submit" class="btn btn-primary btn-sm search-submit">Search</button></noscript>
+          </form>
+          <div class="search-suggest" x-show="suggestOpen" @click.outside="suggestOpen = false" x-cloak>
+            <template x-for="group in ['users', 'skills', 'teams', 'projects']" :key="group">
+              <div x-show="results[group] && results[group].length">
+                <p class="suggest-head" x-text="group === 'users' ? 'People' : (group[0].toUpperCase() + group.slice(1))"></p>
+                <a class="suggest-item" x-for="item in results[group]" :key="item.label + item.url"
+                   :href="item.url || '#'" @click="suggestOpen = false">
+                  <span class="suggest-label" x-text="item.label"></span>
+                  <span class="suggest-detail" x-text="item.detail"></span>
+                </a>
+              </div>
+            </template>
+            <a class="suggest-all" href="#" @click.prevent="document.getElementById('search-input').closest('form').submit()">See all results →</a>
+          </div>
+        </div>
+
         <div class="user-menu">
           <div class="avatar">{{ user.username|slice:':2'|upper }}</div>
           <div>{{ user.get_full_name|default:user.username }}<span>{{ user.get_tier_display }}</span></div>
           <form method="post" action="{% url 'logout' %}">
             {% csrf_token %}
-            <button type="submit" class="text-xs text-slate-500 hover:text-slate-800">Log out</button>
+            <button type="submit" class="btn-link btn-link-muted text-xs">Log out</button>
           </form>
         </div>
       </header>
 
-      <nav class="mobile-menu">
-        <a href="{% url 'home' %}" class="sidebar-link active">Overview</a>
-        <a href="{% url 'my_skills' %}" class="sidebar-link">Skills</a>
-        {% if user.tier == 'team_manager' or user.tier == 'leadership' %}<a href="{% url 'team_list' %}" class="sidebar-link">Teams</a>{% endif %}
-        {% if user.tier == 'leadership' %}<a href="{% url 'project_list' %}" class="sidebar-link">Projects</a>{% endif %}
+      <nav class="mobile-menu" x-show="open" x-cloak aria-label="Mobile">
+        {% nav_active request 'home' as m_active_home %}
+        <a href="{% url 'home' %}" class="sidebar-link{% if m_active_home %} active{% endif %}">Overview</a>
+        {% nav_active request 'my_skills' as m_active_skills %}
+        <a href="{% url 'my_skills' %}" class="sidebar-link{% if m_active_skills %} active{% endif %}">Skills inventory</a>
+        {% if user.tier == 'team_manager' %}
+          {% nav_active request 'team_list' as m_active_teams %}
+          <a href="{% url 'team_list' %}" class="sidebar-link{% if m_active_teams %} active{% endif %}">Teams</a>
+        {% endif %}
+        {% if user.tier == 'team_manager' or user.tier == 'leadership' %}
+          {% nav_active request 'approvals' as m_active_approvals %}
+          <a href="{% url 'approvals' %}" class="sidebar-link{% if m_active_approvals %} active{% endif %}">Approvals</a>
+        {% endif %}
+        {% if user.tier == 'team_manager' %}
+          <a href="{% url 'feedback_list' %}" class="sidebar-link">Team feedback</a>
+        {% endif %}
+        {% if user.tier == 'leadership' %}
+          {% nav_active request 'project_list' 'project_detail' as m_active_projects %}
+          <a href="{% url 'project_list' %}" class="sidebar-link{% if m_active_projects %} active{% endif %}">Projects</a>
+          {% nav_active request 'user_list' 'create_user' as m_active_people %}
+          <a href="{% url 'user_list' %}" class="sidebar-link{% if m_active_people %} active{% endif %}">People</a>
+          {% nav_active request 'insights' 'criticality_list' 'criticality_edit' 'cascade_list' 'feedback_list' as m_active_insights %}
+          <a href="{% url 'insights' %}" class="sidebar-link{% if m_active_insights %} active{% endif %}">Org insights</a>
+          <a href="{% url 'criticality_list' %}" class="sidebar-link sub">Criticality</a>
+          <a href="{% url 'cascade_list' %}" class="sidebar-link sub">Leadership cascade</a>
+          <a href="{% url 'feedback_list' %}" class="sidebar-link sub">Team feedback</a>
+        {% endif %}
       </nav>
-
   {% endif %}
   <main class="page-wrap">
     {% if messages %}
-      {% for message in messages %}<div class="flash-message mb-4 px-4 py-3">{{ message }}</div>{% endfor %}
+      {% for message in messages %}
+        <div class="flash-message flash-{{ message.tags|default:'info' }} mb-4 px-4 py-3">{{ message }}</div>
+      {% endfor %}
     {% endif %}
     {% block content %}{% endblock %}
   </main>
@@ -64,5 +216,6 @@
     </div>
   </div>
   {% endif %}
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

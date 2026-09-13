@@ -1,9 +1,69 @@
 {% extends "base.html" %}
 
-{% block title %}Home · Team Skills{% endblock %}
+{% block title %}Overview · Team Skills{% endblock %}
 
 {% block content %}
-  <h1 class="text-2xl font-semibold mb-2">Welcome, {{ user.username }}</h1>
-  <p class="text-slate-600">This is the team skill management platform shell. Features land here next.</p>
-  <a href="{% url 'admin:index' %}" class="inline-block mt-6 text-sm text-blue-600 hover:underline">Go to admin panel →</a>
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold">Welcome, {{ user.first_name|default:user.username }}</h1>
+      <p class="text-slate-600 mt-1">
+        {{ user.get_tier_display }}{% if user.job_title %} · {{ user.job_title }}{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+    {% for label, value in stats %}
+      <div class="card">
+        <p class="prose-label">{{ label }}</p>
+        <p class="text-3xl font-bold mt-1">{{ value }}</p>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if user.tier == 'employee' and development_plan %}
+    <section class="card mt-6">
+      <div class="flex items-center justify-between mb-1">
+        <h2 class="font-semibold text-lg">Top development items</h2>
+        <a href="{% url 'my_skills' %}" class="btn-link btn-link-muted text-xs">View all →</a>
+      </div>
+      <ul class="divide-y divide-slate-100">
+        {% for item in development_plan %}
+          <li class="py-3 flex items-center justify-between gap-3">
+            <div>
+              <p class="font-medium">
+                {{ item.skill.name }}
+                <span class="ml-1 text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">{{ item.team }}</span>
+              </p>
+              <p class="text-sm text-slate-600">Level {{ item.level }} → required {{ item.required_level }}</p>
+            </div>
+            <span class="badge badge-warning shrink-0">priority {{ item.priority }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+      <p class="text-sm text-slate-500 mt-3">
+        <span class="font-medium text-slate-700">{{ gaps_count }}</span> skill gap{{ gaps_count|pluralize }} to close under the current role requirements.
+      </p>
+    </section>
+  {% endif %}
+
+  <section class="card mt-6">
+    <h2 class="font-semibold mb-3">Quick links</h2>
+    <div class="flex flex-wrap gap-3">
+      {% if user.tier == 'employee' %}
+        <a href="{% url 'my_skills' %}" class="btn btn-primary">My skills</a>
+      {% elif user.tier == 'team_manager' %}
+        <a href="{% url 'team_list' %}" class="btn btn-primary">My teams</a>
+        <a href="{% url 'approvals' %}" class="btn btn-ghost">Review approvals</a>
+        <a href="{% url 'feedback_list' %}" class="btn btn-ghost">
+          Team feedback{% if open_feedback %} <span class="badge badge-warning">{{ open_feedback }}</span>{% endif %}
+        </a>
+      {% else %}
+        <a href="{% url 'project_list' %}" class="btn btn-primary">Projects</a>
+        <a href="{% url 'user_list' %}" class="btn btn-ghost">People</a>
+        <a href="{% url 'insights' %}" class="btn btn-ghost">Org insights</a>
+        <a href="{% url 'approvals' %}" class="btn btn-ghost">Review approvals</a>
+      {% endif %}
+    </div>
+  </section>
 {% endblock %}

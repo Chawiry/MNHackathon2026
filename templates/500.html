@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Something went wrong · Team Skills{% endblock %}
+
+{% block content %}
+  <div class="card p-10 text-center max-w-xl mx-auto mt-8">
+    <p class="text-4xl font-bold text-slate-600">500</p>
+    <h1 class="text-xl font-semibold mt-2">Something went wrong</h1>
+    <p class="text-slate-600 mt-1">The server hit an unexpected error. Please try again shortly.</p>
+    <a href="{% url 'home' %}" class="btn btn-primary mt-5">Back to overview</a>
+  </div>
+{% endblock %}

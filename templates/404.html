@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Page not found · Team Skills{% endblock %}
+
+{% block content %}
+  <div class="card p-10 text-center max-w-xl mx-auto mt-8">
+    <p class="text-4xl font-bold text-blue-600">404</p>
+    <h1 class="text-xl font-semibold mt-2">Page not found</h1>
+    <p class="text-slate-600 mt-1">That link doesn't match anything in the workspace.</p>
+    <a href="{% url 'home' %}" class="btn btn-primary mt-5">Back to overview</a>
+  </div>
+{% endblock %}
