@@ -1,0 +1,272 @@
+:root {
+  --ink: #17233f;
+  --muted: #71809d;
+  --line: #e4eaf4;
+  --panel: #ffffff;
+  --canvas: #f5f8fc;
+  --blue: #2f63e9;
+  --blue-soft: #edf3ff;
+  --green: #25b978;
+  --shadow: 0 8px 24px rgba(34, 62, 113, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--canvas) !important;
+  color: var(--ink) !important;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+
+.app-frame {
+  min-height: 100vh;
+  display: flex;
+}
+
+.app-sidebar {
+  width: 232px;
+  flex: 0 0 232px;
+  background: rgba(255, 255, 255, 0.92);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  padding: 22px 14px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 28px;
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.brand-mark {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: white;
+  background: linear-gradient(145deg, #2f63e9, #6b8cf4);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.brand small {
+  display: block;
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+
+.sidebar-nav {
+  display: grid;
+  gap: 5px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: 9px;
+  color: #60708e;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sidebar-link:hover,
+.sidebar-link.active {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.sidebar-link::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 13px 12px 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.app-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.topbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 34px;
+  background: rgba(255, 255, 255, 0.84);
+  border-bottom: 1px solid var(--line);
+}
+
+.search-box {
+  width: min(430px, 55vw);
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: #9aa7be;
+  font-size: 11px;
+  background: #fbfcfe;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.user-menu span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: #8a9be4;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.page-wrap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 30px 34px 42px;
+}
+
+main h1 {
+  color: var(--ink);
+  font-size: 25px;
+  letter-spacing: -.02em;
+}
+
+main h2,
+main h3,
+main h4 {
+  color: var(--ink);
+}
+
+main .bg-white {
+  background: var(--panel) !important;
+  border-color: var(--line) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--shadow) !important;
+}
+
+main .bg-slate-50 {
+  background: #f7f9fd !important;
+  border-color: var(--line) !important;
+}
+
+main .text-slate-600,
+main .text-slate-500,
+main .text-slate-700 {
+  color: var(--muted) !important;
+}
+
+main button,
+main a.bg-blue-600 {
+  border-radius: 6px !important;
+  background: var(--blue) !important;
+  font-weight: 700;
+}
+
+main button:hover,
+main a.bg-blue-600:hover {
+  background: #2454d0 !important;
+}
+
+main input,
+main select,
+main textarea {
+  border-color: var(--line) !important;
+  border-radius: 5px !important;
+  background: #fbfcfe;
+}
+
+main table thead tr {
+  color: var(--muted) !important;
+}
+
+main table tbody tr {
+  border-color: #edf1f7 !important;
+}
+
+.flash-message {
+  border: 1px solid #d7e4ff;
+  border-radius: 7px;
+  background: #f1f6ff;
+  color: #31539a;
+}
+
+.mobile-menu {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .app-sidebar {
+    display: none;
+  }
+
+  .topbar {
+    height: auto;
+    min-height: 64px;
+    padding: 14px 18px;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .user-menu > div:not(.avatar) {
+    display: none;
+  }
+
+  .page-wrap {
+    padding: 24px 16px 32px;
+  }
+
+  .mobile-menu {
+    display: block;
+    margin-bottom: 18px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .mobile-menu .sidebar-link {
+    display: inline-flex;
+    margin-right: 4px;
+    padding: 8px 10px;
+  }
+}
