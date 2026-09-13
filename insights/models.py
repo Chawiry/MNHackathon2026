@@ -31,7 +31,7 @@ class StrategicInitiative(models.Model):
         null=True,
         blank=True,
         related_name="children",
-        help_text="The approved plan this initiative cascades from.",
+        help_text="The approved plan this initiative is passed down from.",
     )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -42,11 +42,11 @@ class StrategicInitiative(models.Model):
     )
     ai_draft_content = models.TextField(
         blank=True,
-        help_text="AI-drafted plan. NOT used by the level below.",
+        help_text="AI-drafted plan. Not used by the level below.",
     )
     approved_content = models.TextField(
         blank=True,
-        help_text="Human-approved plan — the only content the next level inherits.",
+        help_text="Approved plan — the only content the next level sees.",
     )
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.DRAFT
@@ -81,10 +81,10 @@ class TeamFeedback(models.Model):
     """
 
     class IssueType(models.TextChoices):
-        FEASIBILITY = "feasibility", "Feasibility gap"
-        WORKFORCE = "workforce_shortfall", "Workforce shortfall"
-        SKILL = "skill_shortfall", "Skill shortfall"
-        READINESS = "readiness", "Readiness problem"
+        FEASIBILITY = "feasibility", "Unrealistic scope"
+        WORKFORCE = "workforce_shortfall", "Not enough people"
+        SKILL = "skill_shortfall", "Skills missing"
+        READINESS = "readiness", "Team not ready"
         OTHER = "other", "Other"
 
     raised_by = models.ForeignKey(

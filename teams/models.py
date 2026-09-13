@@ -26,7 +26,7 @@ class Team(models.Model):
         null=True,
         blank=True,
         related_name="teams",
-        help_text="The project this team works on. Teams are spawned by projects.",
+        help_text="The project this team works on. Teams are created by projects.",
     )
     department = models.ForeignKey(
         Department,
@@ -34,7 +34,7 @@ class Team(models.Model):
         null=True,
         blank=True,
         related_name="teams",
-        help_text="Business unit this team reports into.",
+        help_text="Department this team belongs to.",
     )
 
     class Meta:
@@ -110,8 +110,8 @@ class TeamSkillRequirement(models.Model):
         max_length=20,
         choices=Purpose.choices,
         default=Purpose.CURRENT,
-        help_text="'Current role' gaps block today's work; 'Next position' gaps "
-        "define promotion-readiness.",
+        help_text="'Current role' gaps slow today's work; 'Next position' gaps "
+        "show promotion-readiness.",
     )
     people_needed = models.PositiveSmallIntegerField(
         null=True,

@@ -8,7 +8,7 @@
     <a href="{% url 'criticality_list' %}" class="text-sm text-blue-600 hover:underline">← All skills</a>
   </div>
   <p class="text-sm text-slate-600 mb-6">
-    Criticality = business impact (≤40) + strategic relevance (≤20) + time-to-replace (≤20) + concentration risk from live high-proficiency depth (≤20).
+    Criticality = business impact (up to 40) + strategic importance (up to 20) + time to replace (up to 20) + risk from having few experts (up to 20).
   </p>
 
   <div class="grid lg:grid-cols-3 gap-6">
@@ -18,9 +18,9 @@
           <div>
             <h2 class="font-semibold">Factor inputs</h2>
             {% if current %}
-              <p class="text-xs text-slate-500">Latest is v{{ current.version }} (score {{ current.criticality_score }}). Saving appends a new version with the score recomputed from today's proficiency depth.</p>
+              <p class="text-xs text-slate-500">Latest version is v{{ current.version }} (score {{ current.criticality_score }}). Saving creates a new version and recalculates the score from current data.</p>
             {% else %}
-              <p class="text-xs text-slate-500">No assessment for this business unit yet — saving creates version 1.</p>
+              <p class="text-xs text-slate-500">Not assessed for this department yet. Saving creates version 1.</p>
             {% endif %}
           </div>
           {% if current %}
@@ -32,11 +32,11 @@
           {% csrf_token %}
           {{ form.as_div }}
           <p class="text-xs text-slate-500">
-            Live high-proficiency holders (≥4): <span class="font-medium">{{ concentration }}</span>
-            — this drives the concentration-risk component.
+            People at level 4+ right now: <span class="font-medium">{{ concentration }}</span>
+            — this feeds the concentration-risk part of the score.
           </p>
           <button type="submit" class="btn btn-primary">
-            Save factors → recompute
+            Save & recalculate
           </button>
         </form>
       </div>

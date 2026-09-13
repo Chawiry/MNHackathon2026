@@ -252,6 +252,15 @@ def insights_dashboard(request):
         adopt = services.simulate_skill_adoption(skill)
 
     scope_label = department.name if department is not None else "Org"
+    trend_points = _trend_points(department)
+    risk_matrix = _safe_risk_matrix(services.risk_matrix(department))
+    departure_impacts = _safe_departure_impacts(departure_impacts)
+    stays = services.expected_stays()
+    scheduled_leavers = sorted(
+        (s for s in stays if s["months_remaining"] is not None),
+        key=lambda s: s["months_remaining"],
+    )
+    unscheduled_leavers = len(stays) - len(scheduled_leavers)
     return render(
         request,
         "insights/insights.html",
@@ -260,15 +269,16 @@ def insights_dashboard(request):
             "departments": Department.objects.order_by("name"),
             "scope_label": scope_label,
             "bottlenecks": _safe_bottlenecks(services.at_risk_skills(department)),
-            "stays": services.expected_stays(),
+            "scheduled_leavers": scheduled_leavers,
+            "unscheduled_leavers": unscheduled_leavers,
             "depletion": _safe_depletion(services.skill_depletion(department)),
             "successors": _safe_successors(services.successors(department)),
             "months_per_level": services.MONTHS_PER_LEVEL,
             "bus_factor_threshold": services.BUS_FACTOR_THRESHOLD,
             "readiness": readiness,
             "org_score": org_score,
-            "trend_points": _trend_points(department),
-            "risk_matrix": _safe_risk_matrix(services.risk_matrix(department)),
+            "trend_points": trend_points,
+            "risk_matrix": risk_matrix,
             "succession_cards": _safe_succession_cards(
                 services.succession_report(department)
             ),
@@ -279,10 +289,51 @@ def insights_dashboard(request):
                 "last_name", "username"
             ),
             "departure_user": departure_user,
-            "departure_impacts": _safe_departure_impacts(departure_impacts),
+            "departure_impacts": departure_impacts,
             "adopt_skills": Skill.objects.filter(is_active=True).order_by("name"),
             "adopt": adopt,
             "anon_group_size": services.ANON_GROUP_SIZE,
+            # Chart.js payloads (SSR data — progressive enhancement)
+            "readiness_chart": {
+                "score": org_score["score"],
+                "critical": org_score["critical_skills"],
+            },
+            "trend_chart": [
+                {
+                    "label": p["snapshot"].created_at.strftime("%d %b"),
+                    "score": p["snapshot"].score,
+                    "delta": p["delta"],
+                }
+                for p in trend_points
+            ],
+            "risk_chart": [
+                {
+                    "skill": row["skill"].name,
+                    "score": row["criticality_score"],
+                    "holders": row["rarity_holders"],
+                }
+                for row in risk_matrix
+            ],
+            "departure_chart": [
+                {
+                    "skill": impact["skill"].name,
+                    "before": round(impact["coverage_before"] * 100),
+                    "after": round(impact["coverage_after"] * 100),
+                }
+                for impact in departure_impacts
+            ],
+            "heatmap": services.criticality_heatmap(
+                departments=[department] if department is not None else None
+            ),
+            "radar_chart": [
+                {
+                    "department": r["department"].name,
+                    "score": r["score"],
+                }
+                for r in readiness
+                if r["department"] is not None
+            ],
+            "level_mix": services.level_mix_by_category(),
         },
     )
 

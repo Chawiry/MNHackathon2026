@@ -16,7 +16,7 @@
         <h2 class="font-semibold text-lg">Your development plan</h2>
         <span class="text-xs text-slate-500">Top {{ development_plan|length }} of {{ gaps|length }} gap{{ gaps|length|pluralize }}</span>
       </div>
-      <p class="text-xs text-slate-500 mb-3">Bridging role requirements to where you are today, in priority order.</p>
+      <p class="text-xs text-slate-500 mb-3">Closing the gap between what your role needs and where you are, highest priority first.</p>
       <ul class="divide-y divide-slate-100">
         {% for item in development_plan %}
           <li class="py-3">
@@ -87,7 +87,7 @@
             {% endfor %}
           </ul>
         {% else %}
-          {% include "components/empty_state.html" with icon="◇" title="No skills recorded" body="Self-assess a skill below to start building your profile." %}
+          {% include "components/empty_state.html" with icon="◇" title="No skills recorded" body="Start building your profile by self-assessing a skill below." %}
         {% endif %}
       </div>
 
@@ -118,7 +118,7 @@
                   </span>
                 </p>
                 <p class="text-xs text-slate-600">
-                  {% if activity.skill %}{{ activity.skill.name }}{% else %}No single skill{% endif %}
+                  {% if activity.skill %}{{ activity.skill.name }}{% else %}General{% endif %}
                   {% if activity.completed_at %} · {{ activity.completed_at|date:"M Y" }}{% endif %}
                 </p>
                 {% if activity.note %}<p class="text-xs text-slate-500 mt-0.5">{{ activity.note }}</p>{% endif %}
@@ -151,7 +151,7 @@
                 </p>
                 <p class="text-xs text-slate-600">
                   {{ cert.skill.name }} · {{ cert.get_level_display }}
-                  · Obtained {{ cert.obtained_on|date:"M Y" }}
+                  · Earned {{ cert.obtained_on|date:"M Y" }}
                   {% if cert.certificate.issuer %} · {{ cert.certificate.issuer }}{% endif %}
                 </p>
                 <span class="inline-block mt-1 text-xs px-2 py-0.5 rounded-full
@@ -164,7 +164,7 @@
             {% endfor %}
           </ul>
         {% else %}
-          {% include "components/empty_state.html" with icon="◇" title="No certificates yet" body="Submit a certificate to back a skill rating with proof." %}
+          {% include "components/empty_state.html" with icon="◇" title="No certificates yet" body="Add a certificate as proof to back a skill rating." %}
         {% endif %}
       </div>
 

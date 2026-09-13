@@ -8,18 +8,18 @@
     <a href="{% url 'insights' %}" class="text-sm font-medium text-blue-600 hover:underline">← Back to insights</a>
   </div>
   <p class="text-sm text-slate-600 mb-6">
-    Team leads raise upward flags about feasibility, workforce, skills, or readiness; unresolved flags roll up as aggregated risks on the leadership dashboard.
+    Team leads flag problems with workload, people, skills, or readiness. Unresolved issues show up as combined risks on the org insights page.
   </p>
 
   {% if raise_form %}
     <section class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm mb-6">
-      <h2 class="font-semibold text-lg mb-3">Raise a flag</h2>
+      <h2 class="font-semibold text-lg mb-3">Report an issue</h2>
       <form method="post" action="{% url 'feedback_create' %}" class="grid gap-4">
         {% csrf_token %}
         {{ raise_form.as_div }}
         <div class="flex items-center justify-end">
           <button type="submit" class="btn btn-primary">
-            Raise flag
+            Report issue
           </button>
         </div>
       </form>
@@ -62,7 +62,7 @@
               {{ resolve_form.as_div }}
               <div class="flex items-center justify-end">
                 <button type="submit" class="btn btn-success">
-                  Resolve flag
+                  Resolve issue
                 </button>
               </div>
             </form>

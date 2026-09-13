@@ -44,7 +44,7 @@
               {% endfor %}
             </ul>
 
-            <h3 class="mt-4 text-sm font-semibold text-slate-700">Skill coverage vs requirements</h3>
+            <h3 class="mt-4 text-sm font-semibold text-slate-700">Required skills coverage</h3>
             {% if entry.coverage_rows %}
               <div class="table-wrap">
 <table class="table mt-2">
@@ -91,7 +91,7 @@
           </div>
         {% endfor %}
       {% else %}
-        {% include "components/empty_state.html" with icon="◇" title="No teams yet" body="Leadership creates project teams; once added as a team manager, you'll curate that team here." %}
+        {% include "components/empty_state.html" with icon="◇" title="No teams yet" body="Leadership creates project teams. You'll manage yours here once you're assigned as the team manager." %}
       {% endif %}
     </section>
 

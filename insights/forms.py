@@ -19,7 +19,7 @@ class CriticalityFactorsForm(forms.ModelForm):
     )
     strategic_relevance = forms.ChoiceField(
         choices=SCALE_CHOICES,
-        label="Strategic relevance (1–5)",
+        label="Strategic importance (1–5)",
     )
     time_to_replace_months = forms.IntegerField(
         min_value=0,
@@ -44,8 +44,8 @@ class InitiativeCreateForm(forms.ModelForm):
             status=StrategicInitiative.Status.APPROVED
         ),
         required=False,
-        label="Cascades from",
-        help_text="Leave empty for a board/CEO initiative at the top of the cascade.",
+        label="Passed down from",
+        help_text="Optional. Leave empty to start a plan at the top level.",
     )
 
     class Meta:

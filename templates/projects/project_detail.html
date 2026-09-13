@@ -44,7 +44,7 @@
                 {% endfor %}
               </ul>
 
-              <h4 class="mt-4 text-sm font-semibold text-slate-700">Coverage vs requirements</h4>
+              <h4 class="mt-4 text-sm font-semibold text-slate-700">Required skills</h4>
               {% if entry.coverage_rows %}
                 <div class="table-wrap">
 <table class="table mt-2">
@@ -111,10 +111,10 @@
   {% if plan_rows %}
     <section class="mt-8 bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
       <h2 class="text-lg font-semibold mb-1">Plan readiness</h2>
-      <p class="text-xs text-slate-500 mb-3">Manning × qualification × availability per requirement.</p>
+      <p class="text-xs text-slate-500 mb-3">Each requirement, scored on staffing, qualification, and availability.</p>
       <div class="grid sm:grid-cols-4 gap-3 mb-4 text-sm">
         <div class="border border-slate-200 rounded-lg p-3">
-          <span class="block text-xs text-slate-500">Manning</span>
+          <span class="block text-xs text-slate-500">Staffing</span>
           <span class="font-semibold text-lg">{{ plan_summary.manning_pct }}%</span>
         </div>
         <div class="border border-slate-200 rounded-lg p-3">
@@ -138,7 +138,7 @@
             <th class="py-1 pr-3">Skill</th>
             <th class="py-1 pr-3">Needed</th>
             <th class="py-1 pr-3">Qualified</th>
-            <th class="py-1 pr-3">Manning</th>
+            <th class="py-1 pr-3">Staffing</th>
             <th class="py-1 pr-3">Qual.</th>
             <th class="py-1 pr-3">Avail.</th>
             <th class="py-1 pr-3">Readiness</th>

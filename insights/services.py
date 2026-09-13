@@ -30,7 +30,7 @@ from datetime import date
 from django.utils import timezone
 
 from accounts.models import User
-from skills.models import Skill, SkillCriticalityAssessment, SkillFutureDemand, SkillProficiency, SkillRelationship
+from skills.models import Skill, SkillCategory, SkillCriticalityAssessment, SkillFutureDemand, SkillProficiency, SkillRelationship
 from teams.models import Department, Team, TeamMembership, TeamSkillRequirement
 
 MONTHS_PER_LEVEL = 6
@@ -1169,3 +1169,78 @@ def draft_initiative_content(initiative):
     for i, text in enumerate(_draft_actions(at_risk, unresolved_count), 1):
         lines.append(f"{i}. {text}")
     return "\n".join(lines)
+
+
+# --- dashboard charts ----------------------------------------------------------
+
+def criticality_heatmap(departments=None, max_skills=12):
+    """Latest criticality score per (skill, department) for a nested-grid heatmap.
+
+    Returns ``{"departments": [...], "rows": [{"skill": name, "cells": [...]}]}``
+    where every cell is ``{"dept": name, "value": score | None}``. Skills are
+    ranked by their highest score so the grid shows the riskiest skills first.
+    """
+    depts = list(departments or Department.objects.order_by("name"))
+    latest = {}
+    for a in (
+        SkillCriticalityAssessment.objects.filter(skill__is_active=True)
+        .select_related("skill", "department")
+        .order_by("skill_id", "department_id", "-version")
+    ):
+        latest.setdefault((a.skill_id, a.department_id), a)
+
+    by_skill = defaultdict(dict)          # skill_id -> {dept_id: score}
+    skill_obj = {}
+    for (sid, did), a in latest.items():
+        by_skill[sid][did] = a.criticality_score
+        skill_obj[sid] = a.skill
+
+    ranked = sorted(
+        by_skill.keys(),
+        key=lambda sid: max(by_skill[sid].values()),
+        reverse=True,
+    )[:max_skills]
+
+    dept_rows = [(d.pk, d.name) for d in depts]
+    rows = [
+        {
+            "skill": skill_obj[sid].name,
+            "cells": [
+                {"dept": name, "value": by_skill[sid].get(did)}
+                for did, name in dept_rows
+            ],
+        }
+        for sid in ranked
+    ]
+    return {"departments": [d.name for d in depts], "rows": rows}
+
+
+def level_mix_by_category():
+    """Approved proficiency counts by (category, level) — stacked "talent depth" bars.
+
+    Returns ``{"categories": [...], "datasets": [{"label": level, "data": [...]}]}``
+    with one dataset per proficiency level, ordered Novice → Expert.
+    """
+    cats = list(SkillCategory.objects.order_by("name"))
+    counts = defaultdict(lambda: defaultdict(int))   # category_id -> level -> count
+    for prof in (
+        SkillProficiency.objects.filter(status=SkillProficiency.Status.APPROVED)
+        .select_related("skill", "skill__category")
+    ):
+        counts[prof.skill.category_id][prof.level] += 1
+
+    max_level = max((l.value for l in SkillProficiency.Level), default=5)
+    datasets = []
+    for level in range(1, max_level + 1):
+        datasets.append(
+            {
+                "label": SkillProficiency.Level(level).label,
+                "data": [counts[cat.pk].get(level, 0) for cat in cats],
+            }
+        )
+    total = sum(count for ds in datasets for count in ds["data"])
+    return {
+        "categories": [c.name for c in cats],
+        "datasets": datasets,
+        "total": total,
+    }

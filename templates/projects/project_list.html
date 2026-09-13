@@ -34,7 +34,7 @@
                 <span class="text-green-700">{{ entry.summary.met }} met</span>
                 <span class="text-amber-700">{{ entry.summary.partial }} partial</span>
                 <span class="text-red-700">{{ entry.summary.gap }} gap</span>
-                <span class="text-slate-500">requirements across teams</span>
+                <span class="text-slate-500">of skill requirements across teams</span>
               </div>
             {% endif %}
             {% if entry.project.teams.all %}
@@ -47,7 +47,7 @@
           </div>
         {% endfor %}
       {% else %}
-        <p class="text-slate-600">No projects yet. Create one on the right — a team and team manager are spawned with it.</p>
+        <p class="text-slate-600">No projects yet. Create one on the right — a team and team manager are created automatically.</p>
       {% endif %}
     </section>
 

@@ -9,14 +9,14 @@
     <div class="flex items-center gap-4 text-sm font-medium">
       <a href="{% url 'cascade_list' %}" class="text-blue-600 hover:underline">Leadership cascade →</a>
       <a href="{% url 'feedback_list' %}" class="text-blue-600 hover:underline">Team feedback →</a>
-      <a href="{% url 'criticality_list' %}" class="text-blue-600 hover:underline">Edit criticality inputs →</a>
+      <a href="{% url 'criticality_list' %}" class="text-blue-600 hover:underline">Edit risk scores →</a>
     </div>
   </div>
   <p class="text-sm text-slate-600 mb-2">
-    Bottlenecks, talent horizon, and readiness. Successor pace = {{ months_per_level }} months per level; bus-factor flag = {{ bus_factor_threshold }} or fewer holders.
+    Keep an eye on skills only a few people hold and how ready everyone is. A skill is flagged when {{ bus_factor_threshold }} or fewer people hold it. Someone is expected to gain one level every {{ months_per_level }} months.
   </p>
   <p class="text-xs mb-6 rounded border border-slate-200 bg-slate-50 text-slate-500 px-3 py-2">
-    Anonymization: aggregates over groups smaller than {{ anon_group_size }} people are coarsened to a range and individual names are masked for privacy.
+    Privacy: when a group has fewer than {{ anon_group_size }} people, numbers are shown as a range and names are hidden.
   </p>
 
   <form method="get" class="mb-6 flex items-center gap-3 text-sm">
@@ -28,14 +28,14 @@
         <option value="{{ d.pk }}" {% if department and department.pk == d.pk %}selected{% endif %}>{{ d.name }}</option>
       {% endfor %}
     </select>
-    <span class="text-xs text-slate-500">Rescopes readiness, risk, succession, and bottlenecks. What-if simulations and future demand stay org-wide.</span>
+    <span class="text-xs text-slate-500">Filters readiness, risk, succession, and bottlenecked skills. Simulations and future demand always cover the whole organization.</span>
   </form>
 
   <section class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm mb-6">
     <div class="flex items-center justify-between mb-4">
       <div>
         <h2 class="font-semibold text-lg">{{ scope_label }} readiness</h2>
-        <p class="text-xs text-slate-500">Critical-skill coverage weighted by criticality; {{ org_score.critical_skills }} critical skill{{ org_score.critical_skills|pluralize }}.</p>
+        <p class="text-xs text-slate-500">Coverage of critical skills weighted by importance · {{ org_score.critical_skills }} critical skill{{ org_score.critical_skills|pluralize }}.</p>
       </div>
       <div class="text-right">
         <div class="flex items-center justify-end gap-4">
@@ -100,9 +100,67 @@
     {% endif %}
   </section>
 
+  {% if heatmap.rows %}
+  <section class="mt-6 bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+    <h2 class="font-semibold text-lg mb-1">Criticality heatmap</h2>
+    <p class="text-xs text-slate-500 mb-4">Skill risk per department — higher is more critical. Edit the inputs on the criticality page.</p>
+    <div class="heatmap" style="--hm-cols: {{ heatmap.departments|length }}">
+      <div class="hm-corner"></div>
+      {% for dept in heatmap.departments %}
+        <div class="hm-col" role="columnheader">{{ dept }}</div>
+      {% endfor %}
+      {% for row in heatmap.rows %}
+        <div class="hm-row" role="rowheader">
+          <span class="hm-skill">{{ row.skill }}</span>
+        </div>
+        {% for cell in row.cells %}
+          {% if cell.value %}
+            <div class="hm-cell
+              {% if cell.value >= 80 %}hm-hot
+              {% elif cell.value >= 60 %}hm-warm
+              {% elif cell.value >= 40 %}hm-mild
+              {% else %}hm-cool{% endif %}"
+                 title="{{ row.skill }} · {{ cell.dept }}: {{ cell.value }}">{{ cell.value }}</div>
+          {% else %}
+            <div class="hm-cell hm-blank" title="No assessment for {{ cell.dept }}">–</div>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+    <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+      <span class="font-medium">Score scale:</span>
+      <span class="inline-flex items-center gap-1.5"><span class="hm-chip hm-cool"></span> 0–39</span>
+      <span class="inline-flex items-center gap-1.5"><span class="hm-chip hm-mild"></span> 40–59</span>
+      <span class="inline-flex items-center gap-1.5"><span class="hm-chip hm-warm"></span> 60–79</span>
+      <span class="inline-flex items-center gap-1.5"><span class="hm-chip hm-hot"></span> 80–100</span>
+      <span class="inline-flex items-center gap-1.5"><span class="hm-chip hm-blank"></span> not assessed</span>
+    </div>
+  </section>
+  {% endif %}
+
+  <div class="mt-6 grid lg:grid-cols-2 gap-6">
+    {% if not department and radar_chart and radar_chart|length > 1 %}
+    <section class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+      <h2 class="font-semibold text-lg mb-1">Readiness by department</h2>
+      <p class="text-xs text-slate-500 mb-3">0–100 readiness score for each department.</p>
+      <canvas id="radar-chart" height="260" aria-label="Organization readiness by department" role="img"></canvas>
+      {{ radar_chart|json_script:"radar-chart-data" }}
+    </section>
+    {% endif %}
+
+    {% if level_mix and level_mix.total > 0 %}
+    <section class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+      <h2 class="font-semibold text-lg mb-1">Talent depth by category</h2>
+      <p class="text-xs text-slate-500 mb-3">Approved skill ratings per level, by category.</p>
+      <canvas id="level-chart" height="260" aria-label="Approved skill levels by category" role="img"></canvas>
+      {{ level_mix|json_script:"level-chart-data" }}
+    </section>
+    {% endif %}
+  </div>
+
   <section class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm mb-6">
-    <h2 class="font-semibold text-lg mb-1">Unresolved team flags</h2>
-    <p class="text-xs text-slate-500 mb-3">Upward flags from team leads, aggregated by issue type.</p>
+    <h2 class="font-semibold text-lg mb-1">Open team issues</h2>
+    <p class="text-xs text-slate-500 mb-3">Issues team leads have raised, grouped by type.</p>
     {% if feedback_risks %}
       <div class="flex flex-wrap items-center gap-3">
         {% for bucket in feedback_risks %}
@@ -122,17 +180,17 @@
           </div>
         {% endfor %}
       </div>
-      <p class="mt-3 text-xs"><a href="{% url 'feedback_list' %}" class="text-blue-600 hover:underline">Review and resolve flags →</a></p>
+      <p class="mt-3 text-xs"><a href="{% url 'feedback_list' %}" class="text-blue-600 hover:underline">Review and resolve issues →</a></p>
     {% else %}
-      <p class="text-sm text-slate-500">No unresolved flags — all team feedback is closed.</p>
+      <p class="text-sm text-slate-500">No open issues — all team feedback is resolved.</p>
     {% endif %}
   </section>
 
   <div class="grid lg:grid-cols-2 gap-6">
     <section class="space-y-6">
       <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-        <h2 class="font-semibold text-lg">Knowledge bottlenecks <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
-        <p class="text-xs text-slate-500 mb-3">Low bus factor or supply/demand shortfall.</p>
+        <h2 class="font-semibold text-lg">Bottlenecked skills <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
+        <p class="text-xs text-slate-500 mb-3">Too few holders, or more demand than supply.</p>
         {% if bottlenecks %}
           <div class="table-wrap">
 <table class="table">
@@ -159,7 +217,7 @@
                   <td class="py-1.5 pr-3 {% if row.shortfall and not row.masked %}text-red-700 font-medium{% endif %}">{{ row.shortfall_display }}</td>
                   <td class="py-1.5">
                     {% if row.masked %}
-                      <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">small group &mdash; details masked</span>
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">small group — names hidden</span>
                     {% elif row.low_bus_factor %}
                       <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">bus factor &le; {{ bus_factor_threshold }}</span>
                     {% endif %}
@@ -176,7 +234,7 @@
 
       <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
         <h2 class="font-semibold text-lg">Skill depletion <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
-        <p class="text-xs text-slate-500 mb-3">When a skill could be lost entirely — the last holder's expected leave date.</p>
+        <p class="text-xs text-slate-500 mb-3">Skills that could disappear entirely — when the last expert plans to leave.</p>
         {% if depletion %}
           <div class="space-y-4">
             {% for row in depletion %}
@@ -187,9 +245,9 @@
                     {% if row.critical %}<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 ml-1">critical</span>{% endif %}
                   </div>
                   {% if row.masked %}
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{{ row.holder_count }} holders &mdash; details masked</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{{ row.holder_count }} holders — names hidden</span>
                   {% elif row.unknown %}
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">unclear — some holders have no leave date</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">unknown — some people have no leave date set</span>
                   {% elif row.last_leave_date %}
                     {% if row.months_left %}
                       <span class="text-xs font-medium text-red-700">{{ row.months_left }} months ({{ row.last_leave_date|date:"M Y" }})</span>
@@ -199,7 +257,7 @@
                   {% endif %}
                 </div>
                 {% if row.masked %}
-                  <p class="mt-2 text-sm text-slate-500">Too few holders to disclose their leave dates — request drill-down approval for detail.</p>
+                  <p class="mt-2 text-sm text-slate-500">Too few people to show their leave dates for privacy.</p>
                 {% else %}
                   <ul class="mt-2 divide-y divide-slate-100 text-sm">
                     {% for holder in row.holders %}
@@ -222,7 +280,7 @@
     <section class="space-y-6">
       <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
         <h2 class="font-semibold text-lg">Successor readiness <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
-        <p class="text-xs text-slate-500 mb-3">Top under-qualified holders, estimated months to the required level.</p>
+        <p class="text-xs text-slate-500 mb-3">Who comes closest to the target level, and how long it might take.</p>
         {% if successors %}
           <div class="space-y-4">
             {% for entry in successors %}
@@ -251,29 +309,45 @@
       </div>
 
       <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-        <h2 class="font-semibold text-lg">Expected stay</h2>
-        <p class="text-xs text-slate-500 mb-3">Leadership-set leave dates. Set them on the Users page.</p>
-        {% if stays %}
-          <ul class="divide-y divide-slate-100 text-sm">
-            {% for row in stays %}
-              <li class="py-1.5 flex items-center justify-between">
-                <span>{{ row.user.get_full_name|default:row.user.username }}</span>
-                {% if row.months_remaining is not None %}
-                  <span class="text-slate-600">{{ row.months_remaining }} months left ({{ row.expected_leave_date|date:"M Y" }})</span>
-                {% else %}
-                  <span class="text-slate-500">no expected leave date</span>
-                {% endif %}
-              </li>
-            {% endfor %}
-          </ul>
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h2 class="font-semibold text-lg">Expected stay</h2>
+            <p class="text-xs text-slate-500">Leave dates set by leadership. Update them on the People page.</p>
+          </div>
+          {% if scheduled_leavers %}
+            <span class="whitespace-nowrap text-xs font-medium text-slate-600 bg-slate-100 rounded-full px-2 py-0.5">{{ scheduled_leavers|length }} leaving</span>
+          {% endif %}
+        </div>
+        {% if scheduled_leavers %}
+          <details class="detail-fold mt-3">
+            <summary class="text-sm font-medium text-blue-600 hover:underline">
+              <svg class="fold-chevron inline-block w-3.5 h-3.5 mr-1"
+                   viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+                   aria-hidden="true"><path d="M6 9l4 4 4-4"/></svg>
+              View departures
+            </summary>
+            <ul class="mt-2 divide-y divide-slate-100 text-sm">
+              {% for row in scheduled_leavers %}
+                <li class="py-1.5 flex items-center justify-between gap-3">
+                  <span>{{ row.user.get_full_name|default:row.user.username }}</span>
+                  <span class="whitespace-nowrap text-slate-600">{{ row.expected_leave_date|date:"M Y" }}
+                    {% if row.months_remaining > 0 %}· {{ row.months_remaining }} mo{% else %}· due{% endif %}
+                  </span>
+                </li>
+              {% endfor %}
+            </ul>
+          </details>
+          {% if unscheduled_leavers %}
+            <p class="mt-2 text-xs text-slate-500">{{ unscheduled_leavers }} with no date set</p>
+          {% endif %}
         {% else %}
-          <p class="text-sm text-slate-500">No active employees.</p>
+          <p class="mt-2 text-sm text-slate-500">No leave dates set.</p>
         {% endif %}
       </div>
 
       <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
         <h2 class="font-semibold text-lg">Risk matrix <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
-        <p class="text-xs text-slate-500 mb-3">Skills assessed critical (score &ge; 60) — criticality × rarity.</p>
+        <p class="text-xs text-slate-500 mb-3">Critical skills ranked by criticality and how rare they are.</p>
         {% if risk_matrix %}
           <canvas id="risk-chart" class="hint-chart" height="150" aria-label="Critical skills ranked by criticality score" role="img"></canvas>
           {{ risk_chart|json_script:"risk-chart-data" }}
@@ -305,7 +379,7 @@
                   </td>
                   <td class="py-1.5 pr-3">
                     {% if row.masked %}
-                      <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">masked</span>
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">small group</span>
                       <span class="text-xs text-slate-500">({{ row.rarity_holders }})</span>
                     {% else %}
                       <span class="text-xs px-2 py-0.5 rounded-full
@@ -332,7 +406,7 @@
 
   <section class="mt-6 bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
     <h2 class="font-semibold text-lg mb-1">Succession risk cards <span class="text-sm font-normal text-slate-500">· {{ scope_label }}</span></h2>
-    <p class="text-xs text-slate-500 mb-3">Holder seats backed up by qualified (readiness &ge; {{ successor_ready_bar }}%) or in-pipeline successors.</p>
+    <p class="text-xs text-slate-500 mb-3">Critical seats and whether a back-up is ready (readiness ≥ {{ successor_ready_bar }}%) or in training.</p>
     {% if succession_cards %}
       <div class="grid lg:grid-cols-3 gap-4">
         {% for card in succession_cards %}
@@ -353,9 +427,9 @@
               <div>
                 <p class="text-xs text-slate-600">{{ card.holder_count }} holder{{ card.holder_count|pluralize }} · {{ card.qualified_count }} qualified successor{{ card.qualified_count|pluralize }}</p>
                 {% if card.masked %}
-                  <p class="text-xs text-slate-500">small group — successor details masked</p>
+                  <p class="text-xs text-slate-500">small group — names hidden</p>
                 {% elif card.kt_recommended %}
-                  <p class="text-xs text-red-700 font-medium">single holder — knowledge transfer recommended</p>
+                  <p class="text-xs text-red-700 font-medium">only one person holds this — start knowledge transfer</p>
                 {% endif %}
               </div>
             </div>
@@ -371,19 +445,19 @@
                 {% endfor %}
               </ul>
             {% else %}
-              <p class="mt-3 text-sm text-slate-500">No successors identified yet.</p>
+              <p class="mt-3 text-sm text-slate-500">No back-up in training yet.</p>
             {% endif %}
           </div>
         {% endfor %}
       </div>
     {% else %}
-      <p class="text-sm text-slate-500">No critical skills to back up.</p>
+      <p class="text-sm text-slate-500">No critical skills need a back-up.</p>
     {% endif %}
   </section>
 
   <section class="mt-6 bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
     <h2 class="font-semibold text-lg mb-1">Future skills</h2>
-    <p class="text-xs text-slate-500 mb-3">Curated demand projections joined against today's scarcity.</p>
+    <p class="text-xs text-slate-500 mb-3">Skills expected to be in demand later, compared with how many people have them now.</p>
     {% if future_skills %}
       <div class="table-wrap">
 <table class="table">
@@ -419,17 +493,17 @@
       </table>
 </div>
     {% else %}
-      <p class="text-sm text-slate-500">No future-demand projections recorded.</p>
+      <p class="text-sm text-slate-500">No demand projections recorded yet.</p>
     {% endif %}
   </section>
 
   <section class="mt-6 bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-    <h2 class="font-semibold text-lg mb-1">What-if sandbox</h2>
-    <p class="text-xs text-slate-500 mb-4">Read-only simulations to test departure and adoption scenarios.</p>
+    <h2 class="font-semibold text-lg mb-1">Simulations</h2>
+    <p class="text-xs text-slate-500 mb-4">See what would happen if someone leaves or a new skill is adopted.</p>
     <div class="grid lg:grid-cols-2 gap-6">
 
       <div>
-        <h3 class="text-sm font-semibold text-slate-700 mb-2">Employee departure</h3>
+        <h3 class="text-sm font-semibold text-slate-700 mb-2">If someone leaves</h3>
         <form method="get" class="flex gap-2 mb-3">
           {% if department %}<input type="hidden" name="dept" value="{{ department.pk }}">{% endif %}
           <select name="departure_user_id" class="flex-1 border border-slate-300 rounded px-2 py-1.5 text-sm">
@@ -439,7 +513,7 @@
               </option>
             {% endfor %}
           </select>
-          <button type="submit" class="btn btn-primary btn-sm">Simulate</button>
+          <button type="submit" class="btn btn-primary btn-sm">Run</button>
         </form>
         {% if departure_impacts %}
           <canvas id="departure-chart" class="hint-chart" height="120" aria-label="Critical coverage before and after departure" role="img"></canvas>
@@ -461,7 +535,7 @@
                   {% if impact.masked %}
                     <span class="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">small group — details masked</span>
                   {% elif impact.high_proficiency_after <= 1 %}
-                    <span class="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">high-proficiency thin</span>
+                    <span class="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">few experts left</span>
                   {% endif %}
                 </div>
                 <p class="mt-0.5 text-xs text-slate-500">{{ impact.recommendation }}</p>
@@ -469,14 +543,14 @@
             {% endfor %}
           </ul>
         {% elif departure_user %}
-          <p class="text-sm text-slate-500">No critical-skill impacts for {{ departure_user }} — either they hold no critical skills at holder level, or backups exist.</p>
+          <p class="text-sm text-slate-500">No impact on critical skills for {{ departure_user }} — either they don't hold any senior ones, or backups are ready.</p>
         {% else %}
           <p class="text-sm text-slate-500">Pick an employee to see what happens to critical skills if they leave.</p>
         {% endif %}
       </div>
 
       <div>
-        <h3 class="text-sm font-semibold text-slate-700 mb-2">Skill adoption</h3>
+        <h3 class="text-sm font-semibold text-slate-700 mb-2">Training a new skill</h3>
         <form method="get" class="flex gap-2 mb-3">
         {% if department %}<input type="hidden" name="dept" value="{{ department.pk }}">{% endif %}
         <select name="adopt_skill_id" class="flex-1 border border-slate-300 rounded px-2 py-1.5 text-sm">
@@ -484,7 +558,7 @@
               <option value="{{ s.pk }}" {% if adopt and s.pk == adopt.skill.pk %}selected{% endif %}>{{ s.name }}</option>
             {% endfor %}
           </select>
-          <button type="submit" class="btn btn-primary btn-sm">Simulate</button>
+          <button type="submit" class="btn btn-primary btn-sm">Run</button>
         </form>
         {% if adopt %}
           <div class="text-sm space-y-1.5">
@@ -497,14 +571,14 @@
                 {{ adopt.rarity_label }} · {{ adopt.holder_count }} holder{{ adopt.holder_count|pluralize }}
               </span>
             </p>
-            <p class="text-slate-600">{{ adopt.qualified_count }} qualified at level 3 · {{ adopt.adjacent_pool_size }} in the adjacent-skills pool</p>
+            <p class="text-slate-600">{{ adopt.qualified_count }} people already at level 3 · {{ adopt.adjacent_pool_size }} with a nearby skill</p>
             {% if adopt.adjacent_pool %}
-              <p class="text-slate-600">Fastest to train from: {% for person, _, _ in adopt.adjacent_pool %}<span class="inline-block mr-1 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{{ person.get_full_name|default:person.username }}</span>{% endfor %}</p>
+              <p class="text-slate-600">Fastest to train: {% for person, _, _ in adopt.adjacent_pool %}<span class="inline-block mr-1 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{{ person.get_full_name|default:person.username }}</span>{% endfor %}</p>
             {% endif %}
-            <p class="text-slate-600">Estimated ramp: <span class="font-medium">{{ adopt.est_training_months }} months</span>{% if adopt.hiring_recommended %} · <span class="text-amber-700 font-medium">hire recommended</span>{% endif %}</p>
+            <p class="text-slate-600">Estimated training time: <span class="font-medium">{{ adopt.est_training_months }} months</span>{% if adopt.hiring_recommended %} · <span class="text-amber-700 font-medium">hire recommended</span>{% endif %}</p>
           </div>
         {% else %}
-          <p class="text-sm text-slate-500">Pick a skill to test staffing/adoption options.</p>
+          <p class="text-sm text-slate-500">Pick a skill to see hiring or training options.</p>
         {% endif %}
       </div>
 

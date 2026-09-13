@@ -14,9 +14,25 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from django.forms.renderers import DjangoTemplates as DjangoFormsTemplates
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+class AppFormRenderer(DjangoFormsTemplates):
+    """Render form.as_div fields with the app design system (.field etc.)."""
+
+    form_template_name = "forms/div.html"
+    field_template_name = "forms/field.html"
+
+    def render(self, template_name, context, request=None):
+        if template_name == "django/forms/div.html":
+            template_name = self.form_template_name
+        return super().render(template_name, context, request)
+
+
+FORM_RENDERER = "config.settings.AppFormRenderer"
 
 # Load environment variables from the project root .env file when present.
 load_dotenv(BASE_DIR / ".env")
@@ -83,6 +99,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "core.context_processors.nav_context",
             ],
         },
     },

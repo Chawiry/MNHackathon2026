@@ -8,7 +8,7 @@
     <a href="{% url 'insights' %}" class="text-sm font-medium text-blue-600 hover:underline">← Back to insights</a>
   </div>
   <p class="text-sm text-slate-600 mb-6">
-    Draft a plan, approve it, then cascade it one level down. Only <strong>approved</strong> content flows to the next level — never a draft.
+    Draft a plan, approve it, then pass it down one level. Only approved plans get passed down — never drafts.
   </p>
 
   <section class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm mb-6">
@@ -34,9 +34,9 @@
               <h2 class="font-semibold text-lg">{{ initiative.title }}</h2>
               <p class="text-xs text-slate-500">
                 {% if initiative.parent %}
-                  cascades from {{ initiative.parent.title }}
+                  passed down from {{ initiative.parent.title }}
                 {% else %}
-                  top of the cascade (no parent)
+                  top level (no parent plan)
                 {% endif %}
                 · {{ initiative.owner|default:"no owner" }} · created {{ initiative.created_at|date:"d M Y" }}
               </p>

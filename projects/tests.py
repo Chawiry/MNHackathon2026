@@ -138,5 +138,5 @@ class ProjectCoverageSummaryTests(TestCase):
         response = self.client.get(reverse("project_detail", args=[self.project.pk]))
         content = response.content.decode()
         self.assertIn("Plan readiness", content)
-        self.assertIn("Manning", content)
+        self.assertIn("Staffing", content)
         self.assertIn("Diagnosis", content)

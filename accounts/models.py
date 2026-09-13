@@ -20,7 +20,7 @@ class User(AbstractUser):
     expected_leave_date = models.DateField(
         null=True,
         blank=True,
-        help_text="Leadership-estimated date this person is expected to leave.",
+        help_text="Date leadership expects this person to leave.",
     )
 
     def __str__(self):

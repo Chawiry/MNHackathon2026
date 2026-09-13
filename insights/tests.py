@@ -271,7 +271,7 @@ class InsightsViewTests(TestCase):
     def test_dashboard_renders_expected_sections(self):
         response = self.leader_client.get(reverse("insights"))
         content = response.content.decode()
-        for section in ("Knowledge bottlenecks", "Skill depletion", "Successor readiness", "Expected stay"):
+        for section in ("Bottlenecked skills", "Skill depletion", "Successor readiness", "Expected stay"):
             self.assertIn(section, content)
 
     def test_dashboard_renders_strategic_sections(self):
@@ -282,7 +282,7 @@ class InsightsViewTests(TestCase):
             "Risk matrix",
             "Succession risk cards",
             "Future skills",
-            "What-if sandbox",
+            "Simulations",
         ):
             self.assertIn(section, content)
 
@@ -308,6 +308,47 @@ class InsightsViewTests(TestCase):
         )
         self.assertContains(response, "Whatif Core")
         self.assertContains(response, "holders after")
+
+    def test_dashboard_renders_heatmap_and_talent_charts(self):
+        from skills.models import Skill, SkillCategory, SkillCriticalityAssessment, SkillProficiency
+        from teams.models import Department
+
+        category = SkillCategory.objects.create(name="Analytics core")
+        dept = self._department()
+        other_dept = Department.objects.create(name="Smoketest DataLab")
+        skill = Skill.objects.create(name="Pandas", category=category)
+        SkillCriticalityAssessment.objects.create(
+            department=dept, skill=skill, criticality_score=85, version=1
+        )
+        SkillCriticalityAssessment.objects.create(
+            department=other_dept, skill=skill, criticality_score=50, version=1
+        )
+        SkillProficiency.objects.create(
+            user=self.leader,
+            skill=skill,
+            level=4,
+            status=SkillProficiency.Status.APPROVED,
+        )
+        response = self.leader_client.get(reverse("insights"))
+        self.assertContains(response, "Criticality heatmap")
+        self.assertContains(response, "hm-hot")
+        self.assertContains(response, "hm-mild")
+        self.assertContains(response, "Readiness by department")
+        self.assertContains(response, "radar-chart")
+        self.assertContains(response, "Talent depth by category")
+        self.assertContains(response, "level-chart")
+        self.assertContains(response, "radar-chart-data")
+        self.assertContains(response, "level-chart-data")
+
+    def test_dashboard_without_data_hides_chart_sections(self):
+        response = self.leader_client.get(reverse("insights"))
+        self.assertNotContains(response, "Criticality heatmap")
+        self.assertNotContains(response, "radar-chart")
+        self.assertNotContains(response, "level-chart")
+
+    def _department(self):
+        from teams.models import Department
+        return Department.objects.get_or_create(name="Smoketest C")[0]
 
 
 class CriticalityEditTests(TestCase):
@@ -610,10 +651,10 @@ class AnonymizationViewTests(TestCase):
     def test_dashboard_html_coarsens_small_group_and_shows_large(self):
         response = self.client.get(reverse("insights"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Anonymization: aggregates over groups smaller than 5")
+        self.assertContains(response, "Privacy: when a group has fewer than 5")
         # depletion pill for the masked small group
-        self.assertContains(response, "1–4 holders &mdash; details masked")
-        self.assertContains(response, "Too few holders to disclose their leave dates")
+        self.assertContains(response, "1–4 holders — names hidden")
+        self.assertContains(response, "Too few people to show their leave dates for privacy.")
         # large-group candidate names remain visible in the successor list
         self.assertContains(response, "anon_wide0")
 
@@ -776,8 +817,8 @@ class CascadeTests(TestCase):
         self.assertEqual(rollup[0]["count"], 1)
 
         response = self.leader_client.get(reverse("insights"))
-        self.assertContains(response, "Unresolved team flags")
-        self.assertContains(response, "Skill shortfall")
+        self.assertContains(response, "Open team issues")
+        self.assertContains(response, "Skills missing")
         self.assertContains(response, "Python experts")
 
         self._post(
@@ -1010,9 +1051,9 @@ class DepartmentScopeTests(TestCase):
 
     def test_department_scoping_still_anonymizes_small_groups(self):
         scoped = self.client.get(reverse("insights"), {"dept": self.dept_a.pk})
-        self.assertContains(scoped, "1–4 holders &mdash; details masked")
-        self.assertContains(scoped, "Too few holders to disclose their leave dates")
-        self.assertContains(scoped, "small group &mdash; details masked")
+        self.assertContains(scoped, "1–4 holders — names hidden")
+        self.assertContains(scoped, "Too few people to show their leave dates for privacy.")
+        self.assertContains(scoped, "small group — names hidden")
 
 
 class PromotionGapTests(TestCase):
